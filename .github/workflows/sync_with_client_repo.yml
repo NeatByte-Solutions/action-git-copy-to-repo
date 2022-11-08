@@ -1,10 +1,15 @@
-- uses: NeatByte/action-git-copy-to-repo
-  env:
-    SRC_REPO:
-      SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
-      SSH_PRIVATE_KEY: key
-      BRANCH: main
-    TARGET_REPO:
-      GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
-      GITHUB_TOKEN: token
-      BRANCH: master
+name: Sync with client repo
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    - uses: NeatByte/action-git-copy-to-repo
+      env:
+        SRC_REPO:
+          SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
+          SSH_PRIVATE_KEY: key
+          BRANCH: main
+        TARGET_REPO:
+          GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
+          GITHUB_TOKEN: token
+          BRANCH: master
