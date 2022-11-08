@@ -2,9 +2,10 @@ name: Sync with client repo
 on: workflow_dispatch
 
 jobs:
-  test_job:
-    name: Test
+  sync-repos:
+    name: Sync repos
     runs-on: ubuntu-latest
+    steps:
     - uses: NeatByte/action-git-copy-to-repo
       env:
         SRC_REPO:
