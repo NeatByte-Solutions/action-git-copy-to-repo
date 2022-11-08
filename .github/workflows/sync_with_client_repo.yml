@@ -7,12 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-      with:
-        SRC_REPO:
-          SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
-          SSH_PRIVATE_KEY: key
-          BRANCH: main
-        TARGET_REPO:
-          GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
-          GITHUB_TOKEN: token
-          BRANCH: master
+      env:
+        SRC_SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
+        SRC_SSH_PRIVATE_KEY: key
+        SRC_BRANCH: main
+        TARGET_GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
+        TARGET_GITHUB_TOKEN: token
+        TARGET_BRANCH: master
