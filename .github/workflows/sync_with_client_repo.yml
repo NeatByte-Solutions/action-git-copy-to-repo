@@ -1,5 +1,6 @@
 name: Sync with client repo
 on: workflow_dispatch
+
 jobs:
   test_job:
     name: Test
