@@ -6,7 +6,7 @@ jobs:
     name: Sync repos
     runs-on: ubuntu-latest
     steps:
-    - uses: NeatByte/action-git-copy-to-repo
+    - uses: actions/checkout@master
       env:
         SRC_REPO:
           SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
