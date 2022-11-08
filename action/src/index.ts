@@ -65,7 +65,7 @@ export const exec = async (
 };
 
 export interface EnvironmentVariables {
-  SRC_REPO?: any;
+  SRC_SSH_REPO?: any;
   TARGET_REPO?: any;
 }
 
@@ -100,10 +100,10 @@ export const main = async ({
 
   // Clone source repo
   log.log(
-    `##[info] Vit Cloning the repo: git clone "${env.SRC_REPO}" "${REPO_TEMP}"`
+    `##[info] Vit Cloning the repo: git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`
   );
 
-  await exec(`git clone "${env.SRC_REPO}" "${REPO_TEMP}"`, {
+  await exec(`git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`, {
     log,
     env: childEnv,
   }).catch((err) => {

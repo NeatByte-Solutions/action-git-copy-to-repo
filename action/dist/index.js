@@ -140,8 +140,8 @@ const main = async ({ env = process.env, log, }) => {
         SSH_AUTH_SOCK,
     });
     // Clone source repo
-    log.log(`##[info] Vit Cloning the repo: git clone "${env.SRC_REPO}" "${REPO_TEMP}"`);
-    await (0, exports.exec)(`git clone "${env.SRC_REPO}" "${REPO_TEMP}"`, {
+    log.log(`##[info] Vit Cloning the repo: git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`);
+    await (0, exports.exec)(`git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`, {
         log,
         env: childEnv,
     }).catch((err) => {
