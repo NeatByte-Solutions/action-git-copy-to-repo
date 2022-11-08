@@ -1,6 +1,7 @@
 name: Sync with client repo
+on: workflow_dispatch
 jobs:
-  test:
+  test_job:
     name: Test
     runs-on: ubuntu-latest
     - uses: NeatByte/action-git-copy-to-repo
