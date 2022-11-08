@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
+    - name: Run action
+      uses: "./"
       env:
         SRC_SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
         SRC_SSH_PRIVATE_KEY: key
