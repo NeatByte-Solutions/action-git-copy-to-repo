@@ -11,7 +11,7 @@ jobs:
       uses: "./"
       env:
         SRC_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
-        SRC_SSH_PRIVATE_KEY: key
+        SRC_SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         SRC_BRANCH: main
         TARGET_REPO: NeatByte-Solutions/action-git-copy-to-repo
         TARGET_GITHUB_TOKEN: token
