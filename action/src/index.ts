@@ -13,6 +13,85 @@ export type Console = {
   readonly warn: (...msg: unknown[]) => void;
 };
 
+// Paths
+
+const RESOURCES = path.join(path.dirname(__dirname), 'resources');
+const KNOWN_HOSTS_GITHUB = path.join(RESOURCES, 'known_hosts_github.com');
+const SSH_FOLDER = path.join(homedir(), '.ssh');
+const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
+
+const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
+
+interface BaseConfig {
+  branch: string;
+  // folder: string;
+  repo: string;
+  // squashHistory: boolean;
+  // skipEmptyCommits: boolean;
+  // message: string;
+  // tag?: string;
+}
+
+interface SshConfig extends BaseConfig {
+  mode: 'ssh' | 'github';
+  parsedUrl?: gitUrlParse.GitUrl;
+  privateKey?: string;
+  knownHostsFile?: string;
+}
+
+type GenConfigProps = {
+  repo: string;
+  branch: string;
+  githubToken?: string;
+  privateKey?: string;
+  knownHostsFile?: string;
+};
+
+const genConfig: (props: GenConfigProps) => SshConfig = ({
+  repo,
+  branch,
+  githubToken,
+  privateKey,
+  knownHostsFile,
+}) => {
+  if (!repo) throw new Error('REPO must be specified');
+  if (!branch) throw new Error('BRANCH must be specified');
+  //if (!env.FOLDER) throw new Error('FOLDER must be specified');
+
+  // const folder = env.FOLDER;
+  // const squashHistory = env.SQUASH_HISTORY === 'true';
+  // const skipEmptyCommits = env.SKIP_EMPTY_COMMITS === 'true';
+  // const message = env.MESSAGE || DEFAULT_MESSAGE;
+  // const tag = env.TAG;
+
+  // Determine the type of URL
+  if (githubToken) {
+    const url = `https://x-access-token:${githubToken}@github.com/${repo}.git`;
+    const config: SshConfig = {
+      repo: url,
+      branch,
+      mode: 'github',
+    };
+    return config;
+  }
+  const parsedUrl = gitUrlParse(repo);
+
+  if (parsedUrl.protocol === 'ssh') {
+    if (!privateKey)
+      throw new Error('SSH_PRIVATE_KEY must be specified when REPO uses ssh');
+    const config: SshConfig = {
+      repo,
+      branch,
+      mode: 'ssh',
+      parsedUrl,
+      privateKey,
+      knownHostsFile,
+    };
+    return config;
+  }
+  throw new Error('Unsupported REPO URL');
+};
+
 export const exec = async (
   cmd: string,
   opts: {
@@ -65,8 +144,12 @@ export const exec = async (
 };
 
 export interface EnvironmentVariables {
-  SRC_SSH_REPO?: any;
-  TARGET_REPO?: any;
+  SRC_REPO?: string;
+  SRC_BRANCH?: string;
+  SRC_SSH_PRIVATE_KEY?: string;
+  SRC_GITHUB_TOKEN?: string;
+  KNOWN_HOSTS_FILE?: string;
+  TARGET_REPO?: string;
 }
 
 declare global {
@@ -74,6 +157,50 @@ declare global {
     interface ProcessEnv extends EnvironmentVariables {}
   }
 }
+
+// Error messages
+
+const KNOWN_HOSTS_WARNING = `
+##[warning] KNOWN_HOSTS_FILE not set
+This will probably mean that host verification will fail later on
+`;
+
+const writeToProcess = (
+  command: string,
+  args: string[],
+  opts: {
+    env: { [id: string]: string | undefined };
+    data: string;
+    log: Console;
+  }
+) =>
+  new Promise<void>((resolve, reject) => {
+    const child = child_process.spawn(command, args, {
+      env: opts.env,
+      stdio: 'pipe',
+    });
+    child.stdin.setDefaultEncoding('utf-8');
+    child.stdin.write(opts.data);
+    child.stdin.end();
+    child.on('error', reject);
+    let stderr = '';
+    child.stdout.on('data', (data) => {
+      /* istanbul ignore next */
+      opts.log.log(data.toString());
+    });
+    child.stderr.on('data', (data) => {
+      stderr += data;
+      opts.log.error(data.toString());
+    });
+    child.on('close', (code) => {
+      /* istanbul ignore else */
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(stderr));
+      }
+    });
+  });
 
 export const main = async ({
   env = process.env,
@@ -83,7 +210,13 @@ export const main = async ({
   log: Console;
 }) => {
   log.log(`env`, env);
-  // const config = genConfig(env);
+  const srcRepoConfig = genConfig({
+    repo: env.SRC_REPO || '',
+    branch: env.SRC_BRANCH || '',
+    githubToken: env.SRC_GITHUB_TOKEN,
+    privateKey: env.SRC_SSH_PRIVATE_KEY,
+    knownHostsFile: env.KNOWN_HOSTS_FILE,
+  });
 
   // Calculate paths that use temp diractory
 
@@ -98,25 +231,57 @@ export const main = async ({
     SSH_AUTH_SOCK,
   });
 
+  if (srcRepoConfig.mode === 'ssh') {
+    // Copy over the known_hosts file if set
+    let known_hosts = srcRepoConfig.knownHostsFile;
+    // Use well-known known_hosts for certain domains
+    if (!known_hosts && srcRepoConfig?.parsedUrl?.resource === 'github.com') {
+      known_hosts = KNOWN_HOSTS_GITHUB;
+    }
+    if (!known_hosts) {
+      log.warn(KNOWN_HOSTS_WARNING);
+    } else {
+      await mkdirP(SSH_FOLDER);
+      await fs.copyFile(known_hosts, KNOWN_HOSTS_TARGET);
+    }
+
+    // Setup ssh-agent with private key
+    log.log(`Setting up ssh-agent on ${SSH_AUTH_SOCK}`);
+    const sshAgentMatch = SSH_AGENT_PID_EXTRACT.exec(
+      (await exec(`ssh-agent -a ${SSH_AUTH_SOCK}`, { log, env: childEnv }))
+        .stdout
+    );
+    /* istanbul ignore if */
+    if (!sshAgentMatch) throw new Error('Unexpected output from ssh-agent');
+    childEnv.SSH_AGENT_PID = sshAgentMatch[1];
+    log.log(`Adding private key to ssh-agent at ${SSH_AUTH_SOCK}`);
+    await writeToProcess('ssh-add', ['-'], {
+      data: srcRepoConfig.privateKey + '\n',
+      env: childEnv,
+      log,
+    });
+    log.log(`Private key added`);
+  }
+
   // Clone source repo
   log.log(
-    `##[info] Vit Cloning the repo: git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`
+    `##[info] Vit Cloning the repo: git clone "${srcRepoConfig.repo}" "${REPO_TEMP}"`
   );
 
-  await exec(`git clone "${env.SRC_SSH_REPO}" "${REPO_TEMP}"`, {
+  await exec(`git clone "${srcRepoConfig.repo}" "${REPO_TEMP}"`, {
     log,
     env: childEnv,
   }).catch((err) => {
-    // const s = err.toString();
-    // /* istanbul ignore else */
-    // if (config.mode === 'ssh') {
-    //   /* istanbul ignore else */
-    //   if (s.indexOf('Host key verification failed') !== -1) {
-    //     log.error(KNOWN_HOSTS_ERROR(config.parsedUrl.resource));
-    //   } else if (s.indexOf('Permission denied (publickey') !== -1) {
-    //     log.error(SSH_KEY_ERROR);
-    //   }
-    // }
+    const s = err.toString();
+    /* istanbul ignore else */
+    if (srcRepoConfig.mode === 'ssh') {
+      /* istanbul ignore else */
+      if (s.indexOf('Host key verification failed') !== -1) {
+        //log.error(KNOWN_HOSTS_ERROR(srcRepoConfig?.parsedUrl?.resource));
+      } else if (s.indexOf('Permission denied (publickey') !== -1) {
+        // log.error(SSH_KEY_ERROR);
+      }
+    }
     throw err;
   });
 };

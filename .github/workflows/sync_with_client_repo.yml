@@ -10,9 +10,10 @@ jobs:
     - name: Run action
       uses: "./"
       env:
-        SRC_SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
+        SRC_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
         SRC_SSH_PRIVATE_KEY: key
         SRC_BRANCH: main
-        TARGET_GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
+        TARGET_REPO: NeatByte-Solutions/action-git-copy-to-repo
         TARGET_GITHUB_TOKEN: token
         TARGET_BRANCH: master
+        KNOWN_HOSTS_FILE: action/resources/known_hosts_github.com
