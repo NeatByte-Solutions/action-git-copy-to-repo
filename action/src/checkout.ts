@@ -4,41 +4,38 @@ import { promises as fs } from 'fs';
 import { mkdirP } from '@actions/io';
 import exec from './utils/exec';
 import writeToProcess from './utils/writeToProcess';
-import { ConfigType } from './config';
+import { githubRepoData, sshRepoData } from './config';
 import { Console } from './types';
-import {
-  KNOWN_HOSTS_WARNING,
-  SSH_KEY_ERROR,
-  KNOWN_HOSTS_ERROR,
-} from './error-messages';
+import { KNOWN_HOSTS_WARNING, SSH_KEY_ERROR } from './error-messages';
 
 // Paths
-const RESOURCES = path.join(path.dirname(__dirname), 'resources');
-const KNOWN_HOSTS_GITHUB = path.join(RESOURCES, 'known_hosts_github.com');
 const SSH_FOLDER = path.join(homedir(), '.ssh');
 const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
 const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
 
-const checkout = async (
-  config: ConfigType,
-  tmpFolder: string,
+type CheckoutProps = {
+  config: githubRepoData | sshRepoData;
+  tmpFolder: string;
   childEnv: NodeJS.ProcessEnv & {
     SSH_AUTH_SOCK: string;
-  },
-  log: Console
-) => {
+  };
+  knownHostsFile?: string;
+  log: Console;
+};
+
+const checkout = async ({
+  config,
+  tmpFolder,
+  childEnv,
+  knownHostsFile,
+  log,
+}: CheckoutProps) => {
   if (config.mode === 'ssh') {
-    // Copy over the known_hosts file if set
-    let known_hosts = config.knownHostsFile;
-    // Use well-known known_hosts for certain domains
-    if (!known_hosts && config?.parsedUrl?.resource === 'github.com') {
-      known_hosts = KNOWN_HOSTS_GITHUB;
-    }
-    if (!known_hosts) {
+    if (!knownHostsFile) {
       log.warn(KNOWN_HOSTS_WARNING);
     } else {
       await mkdirP(SSH_FOLDER);
-      await fs.copyFile(known_hosts, KNOWN_HOSTS_TARGET);
+      await fs.copyFile(knownHostsFile, KNOWN_HOSTS_TARGET);
     }
 
     // Setup ssh-agent with private key
@@ -59,7 +56,7 @@ const checkout = async (
     log.log(`Adding private key to ssh-agent at ${childEnv.SSH_AUTH_SOCK}`);
 
     await writeToProcess('ssh-add', ['-'], {
-      data: config.privateKey + '\n',
+      data: config.sshPrivateKey + '\n',
       env: childEnv,
       log,
     });
@@ -82,7 +79,7 @@ const checkout = async (
     if (config.mode === 'ssh') {
       /* istanbul ignore else */
       if (s.indexOf('Host key verification failed') !== -1) {
-        log.error(KNOWN_HOSTS_ERROR(config.parsedUrl?.resource || ''));
+        // log.error(KNOWN_HOSTS_ERROR(config.parsedUrl?.resource || ''));
       } else if (s.indexOf('Permission denied (publickey') !== -1) {
         log.error(SSH_KEY_ERROR);
       }
