@@ -5,7 +5,7 @@
     "lint-prettier": "prettier -c src/**/* test/**/*.ts",
     "lint": "npm run lint-prettier",
     "lint:fix": "prettier -w src/**/* test/**/*.ts",
-    "start": "node lib"
+    "start": "node lib/run"
   },
   "devDependencies": {
     "@types/git-url-parse": "^9.0.1",

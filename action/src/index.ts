@@ -4,6 +4,7 @@ import * as path from 'path';
 import genConfig from './config';
 import { Console } from './types';
 import checkout from './checkout';
+import checkoutTargetBranch from './checkoutTargetBranch';
 import { EnvironmentVariables } from './types';
 
 export const main = async ({
@@ -40,6 +41,13 @@ export const main = async ({
     config: config.target,
     tmpFolder: TARGET_REPO_TEMP,
     knownHostsFile: config.knownHostsFile,
+    childEnv,
+    log,
+  });
+
+  await checkoutTargetBranch({
+    config: config.target,
+    tmpFolder: TARGET_REPO_TEMP,
     childEnv,
     log,
   });

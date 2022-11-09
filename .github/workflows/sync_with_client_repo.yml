@@ -15,7 +15,7 @@ jobs:
         SRC_BRANCH: main
         TARGET_GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
         TARGET_GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        TARGET_BRANCH: master
+        TARGET_BRANCH: test
         DELETE_FROM_SRC: |
           NEATBYTE*
           .github/**

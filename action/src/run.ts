@@ -1,4 +1,4 @@
-/* istanbul ignore file - this file is used purely as an entry-point */
+require('dotenv').config();
 
 import { main } from './';
 
