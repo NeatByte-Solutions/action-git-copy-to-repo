@@ -1503,6 +1503,65 @@ module.exports = gitUrlParse;
 
 /***/ }),
 
+/***/ 256:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const child_process = __importStar(__webpack_require__(129));
+const writeToProcess = (command, args, opts) => new Promise((resolve, reject) => {
+    const child = child_process.spawn(command, args, {
+        env: opts.env,
+        stdio: 'pipe',
+    });
+    child.stdin.setDefaultEncoding('utf-8');
+    child.stdin.write(opts.data);
+    child.stdin.end();
+    child.on('error', reject);
+    let stderr = '';
+    child.stdout.on('data', (data) => {
+        /* istanbul ignore next */
+        opts.log.log(data.toString());
+    });
+    child.stderr.on('data', (data) => {
+        stderr += data;
+        opts.log.error(data.toString());
+    });
+    child.on('close', (code) => {
+        /* istanbul ignore else */
+        if (code === 0) {
+            resolve();
+        }
+        else {
+            reject(new Error(stderr));
+        }
+    });
+});
+exports.default = writeToProcess;
+
+
+/***/ }),
+
 /***/ 303:
 /***/ (function(module) {
 
@@ -1528,6 +1587,32 @@ module.exports = function (obj, predicate) {
 
 /***/ }),
 
+/***/ 345:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SSH_KEY_ERROR = exports.KNOWN_HOSTS_ERROR = exports.KNOWN_HOSTS_WARNING = void 0;
+exports.KNOWN_HOSTS_WARNING = `
+##[warning] KNOWN_HOSTS_FILE not set
+This will probably mean that host verification will fail later on
+`;
+const KNOWN_HOSTS_ERROR = (host) => `
+##[error] Host key verification failed!
+This is probably because you forgot to supply a value for KNOWN_HOSTS_FILE
+or the file is invalid or doesn't correctly verify the host ${host}
+`;
+exports.KNOWN_HOSTS_ERROR = KNOWN_HOSTS_ERROR;
+exports.SSH_KEY_ERROR = `
+##[error] Permission denied (publickey)
+Make sure that the ssh private key is set correctly, and
+that the public key has been added to the target repo
+`;
+
+
+/***/ }),
+
 /***/ 357:
 /***/ (function(module) {
 
@@ -1535,47 +1620,16 @@ module.exports = require("assert");
 
 /***/ }),
 
-/***/ 526:
+/***/ 478:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = exports.exec = void 0;
-const child_process = __importStar(__webpack_require__(129));
-const fs_1 = __webpack_require__(747);
 const git_url_parse_1 = __importDefault(__webpack_require__(253));
-const os_1 = __webpack_require__(87);
-const path = __importStar(__webpack_require__(622));
-const io_1 = __webpack_require__(1);
-// Paths
-const RESOURCES = path.join(path.dirname(__dirname), 'resources');
-const KNOWN_HOSTS_GITHUB = path.join(RESOURCES, 'known_hosts_github.com');
-const SSH_FOLDER = path.join((0, os_1.homedir)(), '.ssh');
-const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
-const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
 const genConfig = ({ repo, branch, githubToken, privateKey, knownHostsFile, }) => {
     if (!repo)
         throw new Error('REPO must be specified');
@@ -1613,6 +1667,125 @@ const genConfig = ({ repo, branch, githubToken, privateKey, knownHostsFile, }) =
     }
     throw new Error('Unsupported REPO URL');
 };
+exports.default = genConfig;
+
+
+/***/ }),
+
+/***/ 526:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.main = void 0;
+const fs_1 = __webpack_require__(747);
+const os_1 = __webpack_require__(87);
+const path = __importStar(__webpack_require__(622));
+const config_1 = __importDefault(__webpack_require__(478));
+const checkout_1 = __importDefault(__webpack_require__(923));
+const main = async ({ env = process.env, log, }) => {
+    // create config
+    const config = (0, config_1.default)({
+        repo: env.SRC_REPO || '',
+        branch: env.SRC_BRANCH || '',
+        githubToken: env.SRC_GITHUB_TOKEN,
+        privateKey: env.SRC_SSH_PRIVATE_KEY,
+        knownHostsFile: env.KNOWN_HOSTS_FILE,
+    });
+    // Calculate paths that use temp diractory
+    const TMP_PATH = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'git-publish-subdir-action-'));
+    const SRC_REPO_TEMP = path.join(TMP_PATH, 'repo/src');
+    const SSH_AUTH_SOCK = path.join(TMP_PATH, 'ssh_agent.sock');
+    // Environment to pass to children
+    const childEnv = Object.assign({}, process.env, {
+        SSH_AUTH_SOCK,
+    });
+    await (0, checkout_1.default)(config, SRC_REPO_TEMP, childEnv, log);
+};
+exports.main = main;
+
+
+/***/ }),
+
+/***/ 534:
+/***/ (function(module) {
+
+"use strict";
+
+
+module.exports = (string, separator) => {
+	if (!(typeof string === 'string' && typeof separator === 'string')) {
+		throw new TypeError('Expected the arguments to be of type `string`');
+	}
+
+	if (separator === '') {
+		return [string];
+	}
+
+	const separatorIndex = string.indexOf(separator);
+
+	if (separatorIndex === -1) {
+		return [string];
+	}
+
+	return [
+		string.slice(0, separatorIndex),
+		string.slice(separatorIndex + separator.length)
+	];
+};
+
+
+/***/ }),
+
+/***/ 559:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const child_process = __importStar(__webpack_require__(129));
 const exec = async (cmd, opts) => {
     const { log } = opts;
     const env = (opts === null || opts === void 0 ? void 0 : opts.env) || {};
@@ -1647,139 +1820,7 @@ const exec = async (cmd, opts) => {
         }
     }));
 };
-exports.exec = exec;
-// Error messages
-const KNOWN_HOSTS_WARNING = `
-##[warning] KNOWN_HOSTS_FILE not set
-This will probably mean that host verification will fail later on
-`;
-const writeToProcess = (command, args, opts) => new Promise((resolve, reject) => {
-    const child = child_process.spawn(command, args, {
-        env: opts.env,
-        stdio: 'pipe',
-    });
-    child.stdin.setDefaultEncoding('utf-8');
-    child.stdin.write(opts.data);
-    child.stdin.end();
-    child.on('error', reject);
-    let stderr = '';
-    child.stdout.on('data', (data) => {
-        /* istanbul ignore next */
-        opts.log.log(data.toString());
-    });
-    child.stderr.on('data', (data) => {
-        stderr += data;
-        opts.log.error(data.toString());
-    });
-    child.on('close', (code) => {
-        /* istanbul ignore else */
-        if (code === 0) {
-            resolve();
-        }
-        else {
-            reject(new Error(stderr));
-        }
-    });
-});
-const main = async ({ env = process.env, log, }) => {
-    var _a;
-    log.log(`env`, env);
-    const srcRepoConfig = genConfig({
-        repo: env.SRC_REPO || '',
-        branch: env.SRC_BRANCH || '',
-        githubToken: env.SRC_GITHUB_TOKEN,
-        privateKey: env.SRC_SSH_PRIVATE_KEY,
-        knownHostsFile: env.KNOWN_HOSTS_FILE,
-    });
-    // Calculate paths that use temp diractory
-    const TMP_PATH = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'git-publish-subdir-action-'));
-    const REPO_TEMP = path.join(TMP_PATH, 'repo');
-    const SSH_AUTH_SOCK = path.join(TMP_PATH, 'ssh_agent.sock');
-    // Environment to pass to children
-    const childEnv = Object.assign({}, process.env, {
-        SSH_AUTH_SOCK,
-    });
-    if (srcRepoConfig.mode === 'ssh') {
-        // Copy over the known_hosts file if set
-        let known_hosts = srcRepoConfig.knownHostsFile;
-        // Use well-known known_hosts for certain domains
-        if (!known_hosts && ((_a = srcRepoConfig === null || srcRepoConfig === void 0 ? void 0 : srcRepoConfig.parsedUrl) === null || _a === void 0 ? void 0 : _a.resource) === 'github.com') {
-            known_hosts = KNOWN_HOSTS_GITHUB;
-        }
-        if (!known_hosts) {
-            log.warn(KNOWN_HOSTS_WARNING);
-        }
-        else {
-            await (0, io_1.mkdirP)(SSH_FOLDER);
-            await fs_1.promises.copyFile(known_hosts, KNOWN_HOSTS_TARGET);
-        }
-        // Setup ssh-agent with private key
-        log.log(`Setting up ssh-agent on ${SSH_AUTH_SOCK}`);
-        const sshAgentMatch = SSH_AGENT_PID_EXTRACT.exec((await (0, exports.exec)(`ssh-agent -a ${SSH_AUTH_SOCK}`, { log, env: childEnv }))
-            .stdout);
-        /* istanbul ignore if */
-        if (!sshAgentMatch)
-            throw new Error('Unexpected output from ssh-agent');
-        childEnv.SSH_AGENT_PID = sshAgentMatch[1];
-        log.log(`Adding private key to ssh-agent at ${SSH_AUTH_SOCK}`);
-        await writeToProcess('ssh-add', ['-'], {
-            data: srcRepoConfig.privateKey + '\n',
-            env: childEnv,
-            log,
-        });
-        log.log(`Private key added`);
-    }
-    // Clone source repo
-    log.log(`##[info] Vit Cloning the repo: git clone "${srcRepoConfig.repo}" "${REPO_TEMP}"`);
-    await (0, exports.exec)(`git clone "${srcRepoConfig.repo}" "${REPO_TEMP}"`, {
-        log,
-        env: childEnv,
-    }).catch((err) => {
-        const s = err.toString();
-        /* istanbul ignore else */
-        if (srcRepoConfig.mode === 'ssh') {
-            /* istanbul ignore else */
-            if (s.indexOf('Host key verification failed') !== -1) {
-                //log.error(KNOWN_HOSTS_ERROR(srcRepoConfig?.parsedUrl?.resource));
-            }
-            else if (s.indexOf('Permission denied (publickey') !== -1) {
-                // log.error(SSH_KEY_ERROR);
-            }
-        }
-        throw err;
-    });
-};
-exports.main = main;
-
-
-/***/ }),
-
-/***/ 534:
-/***/ (function(module) {
-
-"use strict";
-
-
-module.exports = (string, separator) => {
-	if (!(typeof string === 'string' && typeof separator === 'string')) {
-		throw new TypeError('Expected the arguments to be of type `string`');
-	}
-
-	if (separator === '') {
-		return [string];
-	}
-
-	const separatorIndex = string.indexOf(separator);
-
-	if (separatorIndex === -1) {
-		return [string];
-	}
-
-	return [
-		string.slice(0, separatorIndex),
-		string.slice(separatorIndex + separator.length)
-	];
-};
+exports.default = exec;
 
 
 /***/ }),
@@ -2293,6 +2334,109 @@ const _1 = __webpack_require__(526);
     console.error(err);
     process.exit(1);
 });
+
+
+/***/ }),
+
+/***/ 923:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const path = __importStar(__webpack_require__(622));
+const os_1 = __webpack_require__(87);
+const fs_1 = __webpack_require__(747);
+const io_1 = __webpack_require__(1);
+const exec_1 = __importDefault(__webpack_require__(559));
+const writeToProcess_1 = __importDefault(__webpack_require__(256));
+const error_messages_1 = __webpack_require__(345);
+// Paths
+const RESOURCES = path.join(path.dirname(__dirname), 'resources');
+const KNOWN_HOSTS_GITHUB = path.join(RESOURCES, 'known_hosts_github.com');
+const SSH_FOLDER = path.join((0, os_1.homedir)(), '.ssh');
+const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
+const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
+const checkout = async (config, tmpFolder, childEnv, log) => {
+    var _a, _b;
+    if (config.mode === 'ssh') {
+        // Copy over the known_hosts file if set
+        let known_hosts = config.knownHostsFile;
+        // Use well-known known_hosts for certain domains
+        if (!known_hosts && ((_a = config === null || config === void 0 ? void 0 : config.parsedUrl) === null || _a === void 0 ? void 0 : _a.resource) === 'github.com') {
+            known_hosts = KNOWN_HOSTS_GITHUB;
+        }
+        if (!known_hosts) {
+            log.warn(error_messages_1.KNOWN_HOSTS_WARNING);
+        }
+        else {
+            await (0, io_1.mkdirP)(SSH_FOLDER);
+            await fs_1.promises.copyFile(known_hosts, KNOWN_HOSTS_TARGET);
+        }
+        // Setup ssh-agent with private key
+        log.log(`Setting up ssh-agent on ${childEnv.SSH_AUTH_SOCK}`);
+        const sshAgentMatch = SSH_AGENT_PID_EXTRACT.exec((await (0, exec_1.default)(`ssh-agent -a ${childEnv.SSH_AUTH_SOCK}`, {
+            log,
+            env: childEnv,
+        })).stdout);
+        if (!sshAgentMatch) {
+            throw new Error('Unexpected output from ssh-agent');
+        }
+        childEnv.SSH_AGENT_PID = sshAgentMatch[1];
+        log.log(`Adding private key to ssh-agent at ${childEnv.SSH_AUTH_SOCK}`);
+        await (0, writeToProcess_1.default)('ssh-add', ['-'], {
+            data: config.privateKey + '\n',
+            env: childEnv,
+            log,
+        });
+        log.log(`Private key added`);
+    }
+    // Clone repo
+    log.log(`##[info] Vit Cloning the repo: git clone "${config.repo}" "${tmpFolder}"`);
+    try {
+        await (0, exec_1.default)(`git clone "${config.repo}" "${tmpFolder}"`, {
+            log,
+            env: childEnv,
+        });
+    }
+    catch (err) {
+        const s = err.toString();
+        /* istanbul ignore else */
+        if (config.mode === 'ssh') {
+            /* istanbul ignore else */
+            if (s.indexOf('Host key verification failed') !== -1) {
+                log.error((0, error_messages_1.KNOWN_HOSTS_ERROR)(((_b = config.parsedUrl) === null || _b === void 0 ? void 0 : _b.resource) || ''));
+            }
+            else if (s.indexOf('Permission denied (publickey') !== -1) {
+                log.error(error_messages_1.SSH_KEY_ERROR);
+            }
+        }
+        throw err;
+    }
+};
+exports.default = checkout;
 
 
 /***/ })
