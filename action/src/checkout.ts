@@ -4,24 +4,14 @@ import { promises as fs } from 'fs';
 import { mkdirP } from '@actions/io';
 import exec from './utils/exec';
 import writeToProcess from './utils/writeToProcess';
-import { githubRepoData, sshRepoData } from './config';
 import { Console } from './types';
 import { KNOWN_HOSTS_WARNING, SSH_KEY_ERROR } from './error-messages';
+import { CheckoutProps } from './types';
 
 // Paths
 const SSH_FOLDER = path.join(homedir(), '.ssh');
 const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
 const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
-
-type CheckoutProps = {
-  config: githubRepoData | sshRepoData;
-  tmpFolder: string;
-  childEnv: NodeJS.ProcessEnv & {
-    SSH_AUTH_SOCK: string;
-  };
-  knownHostsFile?: string;
-  log: Console;
-};
 
 const checkout = async ({
   config,

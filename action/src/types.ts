@@ -28,3 +28,26 @@ declare global {
     interface ProcessEnv extends EnvironmentVariables {}
   }
 }
+
+export type githubRepoData = {
+  mode: 'github';
+  repo: string;
+  branch: string;
+};
+
+export type sshRepoData = {
+  mode: 'ssh';
+  repo: string;
+  sshPrivateKey: string;
+  branch: string;
+};
+
+export type CheckoutProps = {
+  config: githubRepoData | sshRepoData;
+  tmpFolder: string;
+  childEnv: NodeJS.ProcessEnv & {
+    SSH_AUTH_SOCK: string;
+  };
+  knownHostsFile?: string;
+  log: Console;
+};

@@ -681,6 +681,122 @@ module.exports = normalizeUrl;
 
 /***/ }),
 
+/***/ 63:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+const fs = __webpack_require__(747)
+const path = __webpack_require__(622)
+const os = __webpack_require__(87)
+
+const LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
+
+// Parser src into an Object
+function parse (src) {
+  const obj = {}
+
+  // Convert buffer to string
+  let lines = src.toString()
+
+  // Convert line breaks to same format
+  lines = lines.replace(/\r\n?/mg, '\n')
+
+  let match
+  while ((match = LINE.exec(lines)) != null) {
+    const key = match[1]
+
+    // Default undefined or null to empty string
+    let value = (match[2] || '')
+
+    // Remove whitespace
+    value = value.trim()
+
+    // Check if double quoted
+    const maybeQuote = value[0]
+
+    // Remove surrounding quotes
+    value = value.replace(/^(['"`])([\s\S]*)\1$/mg, '$2')
+
+    // Expand newlines if double quoted
+    if (maybeQuote === '"') {
+      value = value.replace(/\\n/g, '\n')
+      value = value.replace(/\\r/g, '\r')
+    }
+
+    // Add to object
+    obj[key] = value
+  }
+
+  return obj
+}
+
+function _log (message) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+function _resolveHome (envPath) {
+  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
+}
+
+// Populates process.env from .env file
+function config (options) {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding = 'utf8'
+  const debug = Boolean(options && options.debug)
+  const override = Boolean(options && options.override)
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = _resolveHome(options.path)
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+  }
+
+  try {
+    // Specifying an encoding returns a string instead of a buffer
+    const parsed = DotenvModule.parse(fs.readFileSync(dotenvPath, { encoding }))
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else {
+        if (override === true) {
+          process.env[key] = parsed[key]
+        }
+
+        if (debug) {
+          if (override === true) {
+            _log(`"${key}" is already defined in \`process.env\` and WAS overwritten`)
+          } else {
+            _log(`"${key}" is already defined in \`process.env\` and was NOT overwritten`)
+          }
+        }
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    if (debug) {
+      _log(`Failed to load ${dotenvPath} ${e.message}`)
+    }
+
+    return { error: e }
+  }
+}
+
+const DotenvModule = {
+  config,
+  parse
+}
+
+module.exports.config = DotenvModule.config
+module.exports.parse = DotenvModule.parse
+module.exports = DotenvModule
+
+
+/***/ }),
+
 /***/ 65:
 /***/ (function(module) {
 
@@ -1661,12 +1777,14 @@ const genConfig = (env = process.env) => {
         src: getRepoData({
             repo: env.SRC_SSH_REPO || env.SRC_GITHUB_REPO || '',
             sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
+            // sshPrivateKey: env.SRC_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
             githubToken: env.SRC_GITHUB_TOKEN,
             branch: env.SRC_BRANCH || '',
         }),
         target: getRepoData({
             repo: env.TARGET_SSH_REPO || env.TARGET_GITHUB_REPO || '',
             sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
+            // sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
             githubToken: env.TARGET_GITHUB_TOKEN,
             branch: env.TARGET_BRANCH || '',
         }),
@@ -1717,6 +1835,7 @@ const os_1 = __webpack_require__(87);
 const path = __importStar(__webpack_require__(622));
 const config_1 = __importDefault(__webpack_require__(478));
 const checkout_1 = __importDefault(__webpack_require__(923));
+const checkoutTargetBranch_1 = __importDefault(__webpack_require__(878));
 const main = async ({ env = process.env, log, }) => {
     // create config
     const config = (0, config_1.default)(env);
@@ -1740,6 +1859,12 @@ const main = async ({ env = process.env, log, }) => {
         config: config.target,
         tmpFolder: TARGET_REPO_TEMP,
         knownHostsFile: config.knownHostsFile,
+        childEnv,
+        log,
+    });
+    await (0, checkoutTargetBranch_1.default)({
+        config: config.target,
+        tmpFolder: TARGET_REPO_TEMP,
         childEnv,
         log,
     });
@@ -2343,8 +2468,8 @@ module.exports = parseUrl;
 
 "use strict";
 
-/* istanbul ignore file - this file is used purely as an entry-point */
 Object.defineProperty(exports, "__esModule", { value: true });
+__webpack_require__(63).config();
 const _1 = __webpack_require__(526);
 (0, _1.main)({
     log: console,
@@ -2353,6 +2478,46 @@ const _1 = __webpack_require__(526);
     console.error(err);
     process.exit(1);
 });
+
+
+/***/ }),
+
+/***/ 878:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const exec_1 = __importDefault(__webpack_require__(559));
+const checkoutTargetBranch = async ({ config, tmpFolder, childEnv, log, }) => {
+    // Check if branch already exists
+    log.log(`##[info] Checking if branch ${config.branch} exists already`);
+    const branchCheck = await (0, exec_1.default)(`git branch --list "${config.branch}"`, {
+        log,
+        env: childEnv,
+        cwd: tmpFolder,
+    });
+    if (branchCheck.stdout.trim() === '') {
+        // Branch does not exist yet, let's check it out as an orphan
+        log.log(`##[info] ${config.branch} does not exist, creating as orphan`);
+        await (0, exec_1.default)(`git checkout -b "${config.branch}"`, {
+            log,
+            env: childEnv,
+            cwd: tmpFolder,
+        });
+    }
+    else {
+        await (0, exec_1.default)(`git checkout "${config.branch}"`, {
+            log,
+            env: childEnv,
+            cwd: tmpFolder,
+        });
+    }
+};
+exports.default = checkoutTargetBranch;
 
 
 /***/ }),
