@@ -16,8 +16,15 @@ jobs:
         TARGET_REPO: NeatByte-Solutions/action-git-copy-to-repo
         TARGET_GITHUB_TOKEN: token
         TARGET_BRANCH: master
-        DELETE_FROM_SRC: [NEATBYTE*, .github/**, known_hosts]
-        DELETE_FROM_TARGET: [.git/**, NEATBYTE*, .github/**, known_hosts]
+        DELETE_FROM_SRC: |
+          NEATBYTE*
+          .github/**
+          known_hosts
+        DELETE_FROM_TARGET: |
+          .git/**
+          NEATBYTE*
+          .github/**
+          known_hosts
         COMMIT_MESSAGE: 'some msg'
         COMMIT_AUTHOR: Vitalii
         COMMIT_AUTHOR_EMAIL: vitalii@gmail.com
