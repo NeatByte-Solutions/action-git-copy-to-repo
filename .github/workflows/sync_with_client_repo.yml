@@ -10,10 +10,10 @@ jobs:
     - name: Run action
       uses: "./"
       env:
-        SRC_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
+        SRC_SSH_REPO: git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git
         SRC_SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         SRC_BRANCH: main
-        TARGET_REPO: NeatByte-Solutions/action-git-copy-to-repo
+        TARGET_GITHUB_REPO: NeatByte-Solutions/action-git-copy-to-repo
         TARGET_GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         TARGET_BRANCH: master
         DELETE_FROM_SRC: |
