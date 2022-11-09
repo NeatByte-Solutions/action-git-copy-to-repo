@@ -1630,42 +1630,53 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const git_url_parse_1 = __importDefault(__webpack_require__(253));
-const genConfig = ({ repo, branch, githubToken, privateKey, knownHostsFile, }) => {
-    if (!repo)
-        throw new Error('REPO must be specified');
-    if (!branch)
-        throw new Error('BRANCH must be specified');
-    //if (!env.FOLDER) throw new Error('FOLDER must be specified');
-    // const folder = env.FOLDER;
-    // const squashHistory = env.SQUASH_HISTORY === 'true';
-    // const skipEmptyCommits = env.SKIP_EMPTY_COMMITS === 'true';
-    // const message = env.MESSAGE || DEFAULT_MESSAGE;
-    // const tag = env.TAG;
+const getRepoData = ({ repo, sshPrivateKey, githubToken, branch, }) => {
     // Determine the type of URL
     if (githubToken) {
         const url = `https://x-access-token:${githubToken}@github.com/${repo}.git`;
         const config = {
+            mode: 'github',
             repo: url,
             branch,
-            mode: 'github',
         };
         return config;
     }
     const parsedUrl = (0, git_url_parse_1.default)(repo);
     if (parsedUrl.protocol === 'ssh') {
-        if (!privateKey)
+        if (!sshPrivateKey)
             throw new Error('SSH_PRIVATE_KEY must be specified when REPO uses ssh');
         const config = {
             repo,
             branch,
             mode: 'ssh',
-            parsedUrl,
-            privateKey,
-            knownHostsFile,
+            sshPrivateKey,
         };
         return config;
     }
     throw new Error('Unsupported REPO URL');
+};
+const genConfig = (env = process.env) => {
+    // TODO Validation
+    return {
+        src: getRepoData({
+            repo: env.SRC_SSH_REPO || env.SRC_GITHUB_REPO || '',
+            sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
+            githubToken: env.SRC_GITHUB_TOKEN,
+            branch: env.SRC_BRANCH || '',
+        }),
+        target: getRepoData({
+            repo: env.TARGET_SSH_REPO || env.TARGET_GITHUB_REPO || '',
+            sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
+            githubToken: env.TARGET_GITHUB_TOKEN,
+            branch: env.TARGET_BRANCH || '',
+        }),
+        commit: {
+            message: env.COMMIT_MESSAGE,
+            author: env.COMMIT_AUTHOR,
+            authorEmail: env.COMMIT_AUTHOR_EMAIL,
+        },
+        knownHostsFile: env.KNOWN_HOSTS_FILE,
+    };
 };
 exports.default = genConfig;
 
@@ -1708,22 +1719,30 @@ const config_1 = __importDefault(__webpack_require__(478));
 const checkout_1 = __importDefault(__webpack_require__(923));
 const main = async ({ env = process.env, log, }) => {
     // create config
-    const config = (0, config_1.default)({
-        repo: env.SRC_REPO || '',
-        branch: env.SRC_BRANCH || '',
-        githubToken: env.SRC_GITHUB_TOKEN,
-        privateKey: env.SRC_SSH_PRIVATE_KEY,
-        knownHostsFile: env.KNOWN_HOSTS_FILE,
-    });
+    const config = (0, config_1.default)(env);
     // Calculate paths that use temp diractory
     const TMP_PATH = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'git-publish-subdir-action-'));
     const SRC_REPO_TEMP = path.join(TMP_PATH, 'repo/src');
+    const TARGET_REPO_TEMP = path.join(TMP_PATH, 'repo/target');
     const SSH_AUTH_SOCK = path.join(TMP_PATH, 'ssh_agent.sock');
     // Environment to pass to children
     const childEnv = Object.assign({}, process.env, {
         SSH_AUTH_SOCK,
     });
-    await (0, checkout_1.default)(config, SRC_REPO_TEMP, childEnv, log);
+    await (0, checkout_1.default)({
+        config: config.src,
+        tmpFolder: SRC_REPO_TEMP,
+        knownHostsFile: config.knownHostsFile,
+        childEnv,
+        log,
+    });
+    await (0, checkout_1.default)({
+        config: config.target,
+        tmpFolder: TARGET_REPO_TEMP,
+        knownHostsFile: config.knownHostsFile,
+        childEnv,
+        log,
+    });
 };
 exports.main = main;
 
@@ -2374,26 +2393,17 @@ const exec_1 = __importDefault(__webpack_require__(559));
 const writeToProcess_1 = __importDefault(__webpack_require__(256));
 const error_messages_1 = __webpack_require__(345);
 // Paths
-const RESOURCES = path.join(path.dirname(__dirname), 'resources');
-const KNOWN_HOSTS_GITHUB = path.join(RESOURCES, 'known_hosts_github.com');
 const SSH_FOLDER = path.join((0, os_1.homedir)(), '.ssh');
 const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
 const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
-const checkout = async (config, tmpFolder, childEnv, log) => {
-    var _a, _b;
+const checkout = async ({ config, tmpFolder, childEnv, knownHostsFile, log, }) => {
     if (config.mode === 'ssh') {
-        // Copy over the known_hosts file if set
-        let known_hosts = config.knownHostsFile;
-        // Use well-known known_hosts for certain domains
-        if (!known_hosts && ((_a = config === null || config === void 0 ? void 0 : config.parsedUrl) === null || _a === void 0 ? void 0 : _a.resource) === 'github.com') {
-            known_hosts = KNOWN_HOSTS_GITHUB;
-        }
-        if (!known_hosts) {
+        if (!knownHostsFile) {
             log.warn(error_messages_1.KNOWN_HOSTS_WARNING);
         }
         else {
             await (0, io_1.mkdirP)(SSH_FOLDER);
-            await fs_1.promises.copyFile(known_hosts, KNOWN_HOSTS_TARGET);
+            await fs_1.promises.copyFile(knownHostsFile, KNOWN_HOSTS_TARGET);
         }
         // Setup ssh-agent with private key
         log.log(`Setting up ssh-agent on ${childEnv.SSH_AUTH_SOCK}`);
@@ -2407,7 +2417,7 @@ const checkout = async (config, tmpFolder, childEnv, log) => {
         childEnv.SSH_AGENT_PID = sshAgentMatch[1];
         log.log(`Adding private key to ssh-agent at ${childEnv.SSH_AUTH_SOCK}`);
         await (0, writeToProcess_1.default)('ssh-add', ['-'], {
-            data: config.privateKey + '\n',
+            data: config.sshPrivateKey + '\n',
             env: childEnv,
             log,
         });
@@ -2427,7 +2437,7 @@ const checkout = async (config, tmpFolder, childEnv, log) => {
         if (config.mode === 'ssh') {
             /* istanbul ignore else */
             if (s.indexOf('Host key verification failed') !== -1) {
-                log.error((0, error_messages_1.KNOWN_HOSTS_ERROR)(((_b = config.parsedUrl) === null || _b === void 0 ? void 0 : _b.resource) || ''));
+                // log.error(KNOWN_HOSTS_ERROR(config.parsedUrl?.resource || ''));
             }
             else if (s.indexOf('Permission denied (publickey') !== -1) {
                 log.error(error_messages_1.SSH_KEY_ERROR);

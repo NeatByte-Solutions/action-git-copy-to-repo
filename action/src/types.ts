@@ -15,8 +15,8 @@ export interface EnvironmentVariables {
   TARGET_GITHUB_REPO?: string;
   TARGET_GITHUB_TOKEN?: string;
   TARGET_BRANCH?: string;
-  DELETE_FROM_SRC?: string[];
-  DELETE_FROM_TARGET?: string[];
+  DELETE_FROM_SRC?: string;
+  DELETE_FROM_TARGET?: string;
   COMMIT_MESSAGE?: string;
   COMMIT_AUTHOR?: string;
   COMMIT_AUTHOR_EMAIL?: string;
