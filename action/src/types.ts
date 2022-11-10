@@ -29,25 +29,38 @@ declare global {
   }
 }
 
-export type githubRepoData = {
-  mode: 'github';
-  repo: string;
-  branch: string;
+export type RepoData = {
+  sshRepo?: string;
+  sshPrivateKey?: string;
+  githubRepo?: string;
+  githubToken?: string;
+  branch?: string;
 };
 
-export type sshRepoData = {
-  mode: 'ssh';
-  repo: string;
-  sshPrivateKey: string;
-  branch: string;
-};
-
-export type CheckoutProps = {
-  config: githubRepoData | sshRepoData;
-  tmpFolder: string;
-  childEnv: NodeJS.ProcessEnv & {
-    SSH_AUTH_SOCK: string;
+export type ConfigType = {
+  src: RepoData;
+  target: RepoData;
+  commit: {
+    message?: string;
+    author?: string;
+    authorEmail?: string;
   };
   knownHostsFile?: string;
+};
+
+export type ExecOpts = {
+  env?: any;
+  cwd?: string;
   log: Console;
+};
+
+export type Context = {
+  log: Console;
+  config?: ConfigType;
+  srcTempFolder?: string;
+  targetTempFolder?: string;
+  srcExecOpt?: ExecOpts;
+  targetExecOpt?: ExecOpts;
+  srcSSHAuthSock?: string;
+  targetSSHAuthSock?: string;
 };
