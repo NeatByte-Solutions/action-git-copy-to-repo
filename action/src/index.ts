@@ -1,10 +1,11 @@
 import { EnvironmentVariables, Console, Context } from './types';
 
 import { createContext } from './context';
+// TODO: do not use default exports for steps
 import config from './config';
 import prepareTempFolders from './tempFolders';
 import { setupSshKeys, killSshProcesses} from './steps/ssh';
-// import { checkoutSrc, checkoutTarget } from './checkout';
+ import { checkoutSrc, checkoutTarget } from './checkout';
 
 export const main = async (
   env: EnvironmentVariables = process.env,
@@ -22,8 +23,8 @@ export const main = async (
   await setupSshKeys(context);
 
   // Clone branches
-  // await checkoutSrc(context);
-  // await checkoutTarget(context);
+  await checkoutSrc(context);
+  await checkoutTarget(context);
 
   // Kill ssh processes if private keys were installed
   await killSshProcesses(context);
