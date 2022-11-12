@@ -207,7 +207,7 @@ const config = (env = process.env, context) => {
     };
 };
 exports.default = config;
-
+//# sourceMappingURL=config.js.map
 
 /***/ }),
 
@@ -225,20 +225,17 @@ const config_1 = __importDefault(__webpack_require__(478));
 const prepareTempFolders_1 = __importDefault(__webpack_require__(807));
 const main = async ({ env = process.env, log, }) => {
     const context = { log };
-    console.log(context);
     // process and validate config
     (0, config_1.default)(env, context);
-    console.log(context);
     // Calculate paths that use temp diractory
     await (0, prepareTempFolders_1.default)(context);
-    console.log(context);
     // Clone branches
     // await checkoutSrc(context);
     // await checkoutTarget(context);
     console.log(context);
 };
 exports.main = main;
-
+//# sourceMappingURL=index.js.map
 
 /***/ }),
 
@@ -290,7 +287,7 @@ const prepareTempFolders = async (context) => {
     context.targetTempFolder = path.join(tempPath, 'repo/target');
 };
 exports.default = prepareTempFolders;
-
+//# sourceMappingURL=prepareTempFolders.js.map
 
 /***/ }),
 
@@ -309,7 +306,7 @@ const _1 = __webpack_require__(526);
     console.error(err);
     process.exit(1);
 });
-
+//# sourceMappingURL=run.js.map
 
 /***/ })
 
