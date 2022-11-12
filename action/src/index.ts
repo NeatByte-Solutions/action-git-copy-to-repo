@@ -2,7 +2,7 @@ import { EnvironmentVariables, Console, Context } from './types';
 
 import { createContext } from './context';
 import config from './config';
-import prepareTempFolders from './tempFoldersAndFiles';
+import prepareTempFolders from './tempFolders';
 import { setupSshKeys, killSshProcesses} from './steps/ssh';
 // import { checkoutSrc, checkoutTarget } from './checkout';
 
