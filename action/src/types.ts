@@ -57,10 +57,16 @@ export type ExecOpts = {
 export type Context = {
   log: Console;
   config?: ConfigType;
-  srcTempFolder?: string;
-  targetTempFolder?: string;
-  srcExecOpt?: ExecOpts;
-  targetExecOpt?: ExecOpts;
-  srcSSHAuthSock?: string;
-  targetSSHAuthSock?: string;
+  temp: {
+    srcTempFolder?: string;
+    targetTempFolder?: string;
+    srcTempRepo?: string;
+    targetTempRepo?: string;
+    srcSSHAuthSock?: string;
+    targetSSHAuthSock?: string;
+  };
+  exec: {
+    srcExecOpt: ExecOpts;
+    targetExecOpt: ExecOpts;
+  };
 };

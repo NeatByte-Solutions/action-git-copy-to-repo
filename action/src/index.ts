@@ -1,25 +1,30 @@
-import config from './config';
-import prepareTempFolders from './prepareTempFolders';
-// import { checkoutSrc, checkoutTarget } from './checkout';
 import { EnvironmentVariables, Console, Context } from './types';
 
-export const main = async ({
-  env = process.env,
-  log,
-}: {
-  env?: EnvironmentVariables;
-  log: Console;
-}) => {
-  const context: Context = { log };
+import { createContext } from './context';
+import config from './config';
+import prepareTempFolders from './tempFoldersAndFiles';
+import { setupSshKeys, killSshProcesses} from './steps/ssh';
+// import { checkoutSrc, checkoutTarget } from './checkout';
+
+export const main = async (
+  env: EnvironmentVariables = process.env,
+  log: Console,
+) => {
+  const context: Context = await createContext(log);
 
   // process and validate config
-  config(env, context);
+  await config(env, context);
 
-  // Calculate paths that use temp diractory
+  // calculate paths that use temp directories
   await prepareTempFolders(context);
+
+  // if needed setup ssh keys for git access
+  await setupSshKeys(context);
 
   // Clone branches
   // await checkoutSrc(context);
   // await checkoutTarget(context);
-  console.log(context);
+
+  // Kill ssh processes if private keys were installed
+  await killSshProcesses(context);
 };

@@ -1,10 +1,10 @@
 import { Context, EnvironmentVariables } from './types';
 
-const config: (env: EnvironmentVariables, context: Context) => void = (
-  env = process.env,
-  context
-) => {
-  // TODO Validation
+const config = async (
+  env: EnvironmentVariables,
+  context: Context
+): Promise<void> => {
+  // TODO: Validation, use yup schema
 
   context.config = {
     src: {

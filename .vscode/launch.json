@@ -10,7 +10,19 @@
       "name": "Launch Program",
       "program": "${workspaceFolder}/action/src/run.ts",
       "preLaunchTask": "npm: build - action",
-      "outFiles": ["${workspaceFolder}/action/lib/**/*.js"]
+      "outFiles": ["${workspaceFolder}/action/lib/**/*.js"],
+      "env": {
+        "SRC_SSH_REPO": "git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git",
+        "SRC_SSH_PRIVATE_KEY": "${{ secrets.SSH_PRIVATE_KEY }}",
+        "SRC_BRANCH": "main",
+        "TARGET_GITHUB_REPO": "NeatByte-Solutions/action-git-copy-to-repo",
+        "TARGET_GITHUB_TOKEN": "${{ secrets.GH_TOKEN }}",
+        "TARGET_BRANCH": "test",
+        "COMMIT_MESSAGE": "some msg",
+        "COMMIT_AUTHOR": "Vitalii",
+        "COMMIT_AUTHOR_EMAIL": "vitalii@gmail.com",
+        "KNOWN_HOSTS_FILE": "action/resources/known_hosts"
+      }
     }
   ]
 }

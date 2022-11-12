@@ -49,126 +49,156 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
-/***/ 63:
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-const fs = __webpack_require__(747)
-const path = __webpack_require__(622)
-const os = __webpack_require__(87)
-
-const LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg
-
-// Parser src into an Object
-function parse (src) {
-  const obj = {}
-
-  // Convert buffer to string
-  let lines = src.toString()
-
-  // Convert line breaks to same format
-  lines = lines.replace(/\r\n?/mg, '\n')
-
-  let match
-  while ((match = LINE.exec(lines)) != null) {
-    const key = match[1]
-
-    // Default undefined or null to empty string
-    let value = (match[2] || '')
-
-    // Remove whitespace
-    value = value.trim()
-
-    // Check if double quoted
-    const maybeQuote = value[0]
-
-    // Remove surrounding quotes
-    value = value.replace(/^(['"`])([\s\S]*)\1$/mg, '$2')
-
-    // Expand newlines if double quoted
-    if (maybeQuote === '"') {
-      value = value.replace(/\\n/g, '\n')
-      value = value.replace(/\\r/g, '\r')
-    }
-
-    // Add to object
-    obj[key] = value
-  }
-
-  return obj
-}
-
-function _log (message) {
-  console.log(`[dotenv][DEBUG] ${message}`)
-}
-
-function _resolveHome (envPath) {
-  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
-}
-
-// Populates process.env from .env file
-function config (options) {
-  let dotenvPath = path.resolve(process.cwd(), '.env')
-  let encoding = 'utf8'
-  const debug = Boolean(options && options.debug)
-  const override = Boolean(options && options.override)
-
-  if (options) {
-    if (options.path != null) {
-      dotenvPath = _resolveHome(options.path)
-    }
-    if (options.encoding != null) {
-      encoding = options.encoding
-    }
-  }
-
-  try {
-    // Specifying an encoding returns a string instead of a buffer
-    const parsed = DotenvModule.parse(fs.readFileSync(dotenvPath, { encoding }))
-
-    Object.keys(parsed).forEach(function (key) {
-      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
-        process.env[key] = parsed[key]
-      } else {
-        if (override === true) {
-          process.env[key] = parsed[key]
-        }
-
-        if (debug) {
-          if (override === true) {
-            _log(`"${key}" is already defined in \`process.env\` and WAS overwritten`)
-          } else {
-            _log(`"${key}" is already defined in \`process.env\` and was NOT overwritten`)
-          }
-        }
-      }
-    })
-
-    return { parsed }
-  } catch (e) {
-    if (debug) {
-      _log(`Failed to load ${dotenvPath} ${e.message}`)
-    }
-
-    return { error: e }
-  }
-}
-
-const DotenvModule = {
-  config,
-  parse
-}
-
-module.exports.config = DotenvModule.config
-module.exports.parse = DotenvModule.parse
-module.exports = DotenvModule
-
-
-/***/ }),
-
 /***/ 87:
 /***/ (function(module) {
 
 module.exports = require("os");
+
+/***/ }),
+
+/***/ 110:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.killSshProcesses = exports.setupSshKeys = void 0;
+const path = __importStar(__webpack_require__(622));
+const processUtils_1 = __webpack_require__(961);
+// RegEx to extract SSH_AGENT_PID
+const SSH_AGENT_PID_EXTRACT = /SSH_AGENT_PID=([0-9]+);/;
+const createExecOpts = (context, envAppend, cwd) => {
+    const { log } = context;
+    const childEnv = Object.assign({}, process.env, envAppend);
+    return {
+        log,
+        cwd,
+        env: childEnv,
+    };
+};
+const setupSshKeysForRepo = async (context, repoData, tempFolder) => {
+    const { log } = context;
+    const SSH_AUTH_SOCK = path.join(tempFolder, 'ssh_agent.sock');
+    let execOpts = createExecOpts(context, {
+        SSH_AUTH_SOCK,
+    });
+    // Setup ssh-agent with private key
+    log.log(`Setting up ssh-agent on ${SSH_AUTH_SOCK}`);
+    const sshAgentMatch = SSH_AGENT_PID_EXTRACT.exec((await (0, processUtils_1.exec)(`ssh-agent -a ${SSH_AUTH_SOCK}`, execOpts)).stdout);
+    if (!sshAgentMatch) {
+        throw new Error('Unexpected output from ssh-agent');
+    }
+    log.log(`Adding private key to ssh-agent at ${SSH_AUTH_SOCK}`);
+    // add PID to execOpts
+    execOpts = createExecOpts(context, {
+        SSH_AGENT_PID: sshAgentMatch[1],
+        SSH_AUTH_SOCK,
+    });
+    // TODO: tune writeToProcess func to use execOpts object
+    await (0, processUtils_1.writeToProcess)('ssh-add', ['-'], {
+        data: repoData.sshPrivateKey + '\n',
+        log,
+        env: execOpts.env,
+    });
+    log.log(`Private key added to ssh agent at ${SSH_AUTH_SOCK}`);
+    return execOpts;
+};
+const setupSshKeys = async (context) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const { log } = context;
+    if ((_b = (_a = context.config) === null || _a === void 0 ? void 0 : _a.src) === null || _b === void 0 ? void 0 : _b.sshPrivateKey) {
+        log.log(`##[info] Setting ssh key for src repo`);
+        const execOpts = await setupSshKeysForRepo(context, (_c = context.config) === null || _c === void 0 ? void 0 : _c.src, ((_d = context.temp) === null || _d === void 0 ? void 0 : _d.srcTempFolder) || '');
+        context.exec.srcExecOpt = execOpts;
+    }
+    if ((_f = (_e = context.config) === null || _e === void 0 ? void 0 : _e.target) === null || _f === void 0 ? void 0 : _f.sshPrivateKey) {
+        log.log(`##[info] Setting ssh key for target repo`);
+        const execOpts = await setupSshKeysForRepo(context, (_g = context.config) === null || _g === void 0 ? void 0 : _g.target, ((_h = context.temp) === null || _h === void 0 ? void 0 : _h.targetTempFolder) || '');
+        context.exec.targetExecOpt = execOpts;
+    }
+};
+exports.setupSshKeys = setupSshKeys;
+const killSshProcesses = async (context) => {
+    var _a, _b, _c, _d;
+    const { log } = context;
+    if ((_b = (_a = context.config) === null || _a === void 0 ? void 0 : _a.src) === null || _b === void 0 ? void 0 : _b.sshPrivateKey) {
+        log.log(`##[info] Killing ssh-agent for src repo`);
+        await (0, processUtils_1.exec)(`ssh-agent -k`, context.exec.srcExecOpt);
+    }
+    if ((_d = (_c = context.config) === null || _c === void 0 ? void 0 : _c.target) === null || _d === void 0 ? void 0 : _d.sshPrivateKey) {
+        log.log(`##[info] Killing ssh-agent for target repo`);
+        await (0, processUtils_1.exec)(`ssh-agent -k`, context.exec.targetExecOpt);
+    }
+};
+exports.killSshProcesses = killSshProcesses;
+//# sourceMappingURL=ssh.js.map
+
+/***/ }),
+
+/***/ 129:
+/***/ (function(module) {
+
+module.exports = require("child_process");
+
+/***/ }),
+
+/***/ 264:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __webpack_require__(747);
+const os_1 = __webpack_require__(87);
+const path = __importStar(__webpack_require__(622));
+exports.default = async (context) => {
+    const tempPath = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'action-git-copy-to-repo-'));
+    context.temp = {
+        srcTempFolder: path.join(tempPath, 'src'),
+        targetTempFolder: path.join(tempPath, 'target'),
+        srcTempRepo: path.join(tempPath, 'src/repo'),
+        targetTempRepo: path.join(tempPath, 'target/repo'),
+    };
+};
+//# sourceMappingURL=tempFoldersAndFiles.js.map
 
 /***/ }),
 
@@ -178,8 +208,8 @@ module.exports = require("os");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const config = (env = process.env, context) => {
-    // TODO Validation
+const config = async (env, context) => {
+    // TODO: Validation, use yup schema
     var _a, _b;
     context.config = {
         src: {
@@ -211,6 +241,29 @@ exports.default = config;
 
 /***/ }),
 
+/***/ 482:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createContext = void 0;
+const createContext = async (log) => {
+    const context = {
+        log,
+        temp: {},
+        exec: {
+            srcExecOpt: { log, env: process.env },
+            targetExecOpt: { log, env: process.env },
+        },
+    };
+    return context;
+};
+exports.createContext = createContext;
+//# sourceMappingURL=context.js.map
+
+/***/ }),
+
 /***/ 526:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -221,18 +274,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.main = void 0;
+const context_1 = __webpack_require__(482);
 const config_1 = __importDefault(__webpack_require__(478));
-const prepareTempFolders_1 = __importDefault(__webpack_require__(807));
-const main = async ({ env = process.env, log, }) => {
-    const context = { log };
+const tempFoldersAndFiles_1 = __importDefault(__webpack_require__(264));
+const ssh_1 = __webpack_require__(110);
+// import { checkoutSrc, checkoutTarget } from './checkout';
+const main = async (env = process.env, log) => {
+    const context = await (0, context_1.createContext)(log);
     // process and validate config
-    (0, config_1.default)(env, context);
-    // Calculate paths that use temp diractory
-    await (0, prepareTempFolders_1.default)(context);
+    await (0, config_1.default)(env, context);
+    // calculate paths that use temp directories
+    await (0, tempFoldersAndFiles_1.default)(context);
+    // if needed setup ssh keys for git access
+    await (0, ssh_1.setupSshKeys)(context);
     // Clone branches
     // await checkoutSrc(context);
     // await checkoutTarget(context);
-    console.log(context);
+    // Kill ssh processes if private keys were installed
+    await (0, ssh_1.killSshProcesses)(context);
 };
 exports.main = main;
 //# sourceMappingURL=index.js.map
@@ -253,7 +312,22 @@ module.exports = require("fs");
 
 /***/ }),
 
-/***/ 807:
+/***/ 861:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const _1 = __webpack_require__(526);
+(0, _1.main)(process.env, console).catch((err) => {
+    console.error(err);
+    process.exit(1);
+});
+//# sourceMappingURL=run.js.map
+
+/***/ }),
+
+/***/ 961:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
@@ -278,35 +352,73 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs_1 = __webpack_require__(747);
-const os_1 = __webpack_require__(87);
-const path = __importStar(__webpack_require__(622));
-const prepareTempFolders = async (context) => {
-    const tempPath = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'git-publish-subdir-action-'));
-    context.srcTempFolder = path.join(tempPath, 'repo/src');
-    context.targetTempFolder = path.join(tempPath, 'repo/target');
+exports.writeToProcess = exports.exec = void 0;
+const child_process = __importStar(__webpack_require__(129));
+const exec = async (cmd, opts) => {
+    const { log } = opts;
+    const env = (opts === null || opts === void 0 ? void 0 : opts.env) || {};
+    const ps = child_process.spawn('bash', ['-c', cmd], {
+        env: {
+            HOME: process.env.HOME,
+            ...env,
+        },
+        cwd: opts.cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    const output = {
+        stderr: '',
+        stdout: '',
+    };
+    // We won't be providing any input to command
+    ps.stdin.end();
+    ps.stdout.on('data', (data) => {
+        output.stdout += data;
+        log.log(`data`, data.toString());
+    });
+    ps.stderr.on('data', (data) => {
+        output.stderr += data;
+        log.error(data.toString());
+    });
+    return new Promise((resolve, reject) => ps.on('close', (code) => {
+        if (code !== 0) {
+            reject(new Error('Process exited with code: ' + code + ':\n' + output.stderr));
+        }
+        else {
+            resolve(output);
+        }
+    }));
 };
-exports.default = prepareTempFolders;
-//# sourceMappingURL=prepareTempFolders.js.map
-
-/***/ }),
-
-/***/ 861:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(63).config();
-const _1 = __webpack_require__(526);
-(0, _1.main)({
-    log: console,
-    env: process.env,
-}).catch((err) => {
-    console.error(err);
-    process.exit(1);
+exports.exec = exec;
+const writeToProcess = (command, args, opts) => new Promise((resolve, reject) => {
+    const child = child_process.spawn(command, args, {
+        env: opts.env,
+        stdio: 'pipe',
+    });
+    child.stdin.setDefaultEncoding('utf-8');
+    child.stdin.write(opts.data);
+    child.stdin.end();
+    child.on('error', reject);
+    let stderr = '';
+    child.stdout.on('data', (data) => {
+        /* istanbul ignore next */
+        opts.log.log(data.toString());
+    });
+    child.stderr.on('data', (data) => {
+        stderr += data;
+        opts.log.error(data.toString());
+    });
+    child.on('close', (code) => {
+        /* istanbul ignore else */
+        if (code === 0) {
+            resolve();
+        }
+        else {
+            reject(new Error(stderr));
+        }
+    });
 });
-//# sourceMappingURL=run.js.map
+exports.writeToProcess = writeToProcess;
+//# sourceMappingURL=processUtils.js.map
 
 /***/ })
 
