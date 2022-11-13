@@ -18,6 +18,7 @@
         "TARGET_GITHUB_REPO": "NeatByte-Solutions/action-git-copy-to-repo",
         "TARGET_GITHUB_TOKEN": "${{ secrets.GH_TOKEN }}",
         "TARGET_BRANCH": "test",
+        "TARGET_BASE_BRANCH": "main",
         "COMMIT_MESSAGE": "some msg",
         "COMMIT_AUTHOR": "Vitalii",
         "COMMIT_AUTHOR_EMAIL": "vitalii@gmail.com",
