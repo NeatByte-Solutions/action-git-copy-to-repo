@@ -1,9 +1,6 @@
-import { Context, EnvironmentVariables } from './types';
+import { Context, EnvironmentVariables } from '../types';
 
-const config = async (
-  env: EnvironmentVariables,
-  context: Context
-): Promise<void> => {
+export const config = async (env: EnvironmentVariables, context: Context): Promise<void> => {
   // TODO: Validation, use yup schema
 
   context.config = {
@@ -31,5 +28,3 @@ const config = async (
     knownHostsFile: env.KNOWN_HOSTS_FILE,
   };
 };
-
-export default config;
