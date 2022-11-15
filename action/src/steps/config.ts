@@ -19,6 +19,7 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
       githubRepo: env.TARGET_GITHUB_REPO,
       githubToken: env.TARGET_GITHUB_TOKEN,
       branch: env.TARGET_BRANCH,
+      baseBranch: env.TARGET_BASE_BRANCH || 'master',
     },
     commit: {
       message: env.COMMIT_MESSAGE,

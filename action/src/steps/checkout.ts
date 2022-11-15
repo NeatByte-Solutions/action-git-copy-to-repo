@@ -1,8 +1,6 @@
-import * as path from 'path';
-import { homedir } from 'os';
 import gitUrlParse from 'git-url-parse';
 import { exec } from '../utils/processUtils';
-import { Console, Context, ExecOpts, RepoData } from '../types';
+import { Context, ExecOpts, RepoData } from '../types';
 import { SSH_KEY_ERROR, KNOWN_HOSTS_ERROR } from '../utils/errorMessages';
 
 class NoSuchBranchError extends Error {
@@ -11,36 +9,6 @@ class NoSuchBranchError extends Error {
   }
 }
 
-// use check
-// if (err instanceOf NoSuchBranchError)
-// for not existing branch cases
-
-// const checkoutTargetBranch = async ({ config, tmpFolder, childEnv, log }: CheckoutProps) => {
-//   // Check if branch already exists
-//   log.log(`##[info] Checking if branch ${config.branch} exists already`);
-//   const branchCheck = await exec(`git branch --list "${config.branch}"`, {
-//     log,
-//     env: childEnv,
-//     cwd: tmpFolder,
-//   });
-
-//   if (branchCheck.stdout.trim() === '') {
-//     // Branch does not exist yet, let's create a new branch
-//     log.log(`##[info] ${config.branch} does not exist, creating a new branch from default branch`);
-//     await exec(`git checkout -b "${config.branch}"`, {
-//       log,
-//       env: childEnv,
-//       cwd: tmpFolder,
-//     });
-//   } else {
-//     await exec(`git checkout "${config.branch}"`, {
-//       log,
-//       env: childEnv,
-//       cwd: tmpFolder,
-//     });
-//   }
-// };
-
 export type CheckoutProps = {
   context: Context;
   repoData?: RepoData;
@@ -48,7 +16,7 @@ export type CheckoutProps = {
   execOpts?: ExecOpts;
 };
 
-export const checkout = async ({ context, repoData, tmpFolder, execOpts }: CheckoutProps) => {
+const clone = async ({ context, repoData, tmpFolder, execOpts }: CheckoutProps) => {
   const { log } = context;
   const repo = repoData?.sshPrivateKey
     ? repoData?.sshRepo || ''
@@ -74,38 +42,126 @@ export const checkout = async ({ context, repoData, tmpFolder, execOpts }: Check
   }
 };
 
+interface SwitchToBranchProps {
+  context: Context;
+  branch?: string;
+  folder?: string;
+  execOpts: ExecOpts;
+}
+
+const switchToBranch = async ({ context, branch, folder, execOpts }: SwitchToBranchProps) => {
+  const { log } = context;
+
+  log.log(`##[info] Checkout branch "${branch}"`);
+  // Fetch branch if it exists
+  try {
+    await exec(`git fetch -u origin ${branch}:${branch}`, {
+      ...execOpts,
+      cwd: folder,
+    });
+  } catch (err) {
+    if (err instanceof NoSuchBranchError) {
+      log.error("##[warning] Failed to fetch target branch, probably doesn't exist");
+      log.error(err);
+    }
+  }
+
+  // Checkout branch
+  await exec(`git checkout "${branch}"`, {
+    ...execOpts,
+    cwd: folder,
+  });
+};
+
+interface SwitchOrCreateBranchProps extends SwitchToBranchProps {
+  baseBranch?: string;
+}
+
+const switchOrCreateBranch = async ({
+  context,
+  branch,
+  baseBranch,
+  folder,
+  execOpts,
+}: SwitchOrCreateBranchProps) => {
+  const { log } = context;
+
+  log.log(`##[info] Checkout branch "${branch}"`);
+  // Fetch branch if it exists
+  try {
+    await exec(`git fetch -u origin ${branch}:${branch}`, {
+      ...execOpts,
+      cwd: folder,
+    });
+  } catch (err) {
+    if (err instanceof NoSuchBranchError) {
+      log.error("##[warning] Failed to fetch target branch, probably doesn't exist");
+      log.error(err);
+    }
+  }
+
+  // Check if branch already exists
+  log.log(`##[info] Checking if branch ${branch} exists already`);
+  const branchCheck = await exec(`git branch --list "${branch}"`, {
+    ...execOpts,
+    cwd: folder,
+  });
+  if (branchCheck.stdout.trim() === '') {
+    // Branch does not exist yet, let's check it out from base branch
+    log.log(`##[info] ${branch} does not exist, creating from ${baseBranch}`);
+    await exec(`git checkout -b "${branch}" "${baseBranch}"`, {
+      ...execOpts,
+      cwd: folder,
+    });
+  } else {
+    await exec(`git checkout "${branch}"`, {
+      ...execOpts,
+      cwd: folder,
+    });
+  }
+};
+
 export const checkoutSrc = async (context: Context) => {
-  await checkout({
+  // Clone source repo
+  await clone({
     context,
     repoData: context.config?.src,
     tmpFolder: context.temp.srcTempRepo,
     execOpts: context.exec.srcExecOpt,
   });
 
-  // switch to config branch (error if failure)
+  // Switch to source branch or create new one if such doesn't exist
+  await switchToBranch({
+    context,
+    branch: context.config?.src?.branch,
+    folder: context.temp.srcTempRepo,
+    execOpts: context.exec.srcExecOpt,
+  });
 };
 
 export const checkoutTarget = async (context: Context) => {
-  await checkout({
+  // Clone target repo
+  await clone({
     context,
     repoData: context.config?.target,
     tmpFolder: context.temp.targetTempRepo,
     execOpts: context.exec.targetExecOpt,
   });
 
-  // 1) switch to config branch (can be a failure if such doesn't exist)
-  // 2) switch to "TARGET_BASE_BRANCH" (if needed otherwise stay on default branch)
-  // 3) create new branch (from default branch or defined "TARGET_BASE_BRANCH")
+  // Switch to target base branch
+  await switchToBranch({
+    context,
+    branch: context.config?.target?.baseBranch,
+    folder: context.temp.targetTempRepo,
+    execOpts: context.exec.targetExecOpt,
+  });
 
-  // await checkoutTargetBranch({
-  //   config: config.target,
-  //   tmpFolder: TARGET_REPO_TEMP,
-  //   childEnv,
-  //   log,
-  // });
+  // Switch to target branch or create new one if such doesn't exist
+  await switchOrCreateBranch({
+    context,
+    branch: context.config?.target?.branch,
+    baseBranch: context.config?.target?.baseBranch,
+    folder: context.temp.targetTempRepo,
+    execOpts: context.exec.targetExecOpt,
+  });
 };
-
-// use same approach as "setupSshKeys = async (context: Context): Promise<void>"
-// (no need to have more code in index.ts - just pass context, all details are hidden inside step)
-// maybe better to do 2 funcs: checkoutBranch, checkoutOrCreateBranch
-// as src and target repos have different logic

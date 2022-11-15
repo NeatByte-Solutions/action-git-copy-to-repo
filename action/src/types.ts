@@ -15,6 +15,7 @@ export interface EnvironmentVariables {
   TARGET_GITHUB_REPO?: string;
   TARGET_GITHUB_TOKEN?: string;
   TARGET_BRANCH?: string;
+  TARGET_BASE_BRANCH?: string;
   DELETE_FROM_SRC?: string;
   DELETE_FROM_TARGET?: string;
   COMMIT_MESSAGE?: string;
@@ -35,6 +36,7 @@ export type RepoData = {
   githubRepo?: string;
   githubToken?: string;
   branch?: string;
+  baseBranch?: string;
 };
 
 export type ConfigType = {
