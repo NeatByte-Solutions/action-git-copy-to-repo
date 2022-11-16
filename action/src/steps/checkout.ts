@@ -125,6 +125,8 @@ const switchOrCreateBranch = async ({
 };
 
 export const checkoutSrc = async (context: Context) => {
+  //const srcParams = { ... };
+  
   // Clone source repo
   await clone({
     context,
