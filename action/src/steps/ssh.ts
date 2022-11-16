@@ -21,7 +21,8 @@ const createExecOpts = (context: Context, envAppend?: Object, cwd?: string): Exe
 const setupSshKeysForRepo = async (
   context: Context,
   repoData: RepoData,
-  tempFolder: string
+  tempFolder: string,
+  tempRepoFolder: string
 ): Promise<ExecOpts> => {
   const { log } = context;
   const SSH_AUTH_SOCK = path.join(tempFolder, 'ssh_agent.sock');
@@ -43,10 +44,14 @@ const setupSshKeysForRepo = async (
   log.log(`Adding private key to ssh-agent at ${SSH_AUTH_SOCK}`);
 
   // add PID to execOpts
-  execOpts = createExecOpts(context, {
-    SSH_AGENT_PID: sshAgentMatch[1],
-    SSH_AUTH_SOCK,
-  });
+  execOpts = createExecOpts(
+    context,
+    {
+      SSH_AGENT_PID: sshAgentMatch[1],
+      SSH_AUTH_SOCK,
+    },
+    tempRepoFolder
+  );
 
   // TODO: tune writeToProcess func to use execOpts object
   await writeToProcess('ssh-add', ['-'], {
@@ -69,10 +74,17 @@ export const setupSshKeys = async (context: Context): Promise<void> => {
     const execOpts = await setupSshKeysForRepo(
       context,
       context.config?.src,
-      context.temp?.srcTempFolder || ''
+      context.temp?.srcTempFolder || '',
+      context.temp?.srcTempRepo || ''
     );
 
     context.exec.srcExecOpt = execOpts;
+  } else {
+    context.exec.srcExecOpt = {
+      log,
+      cwd: context.temp?.srcTempRepo || '',
+      env: process.env,
+    };
   }
 
   if (context.config?.target?.sshPrivateKey) {
@@ -81,13 +93,19 @@ export const setupSshKeys = async (context: Context): Promise<void> => {
     const execOpts = await setupSshKeysForRepo(
       context,
       context.config?.target,
-      context.temp?.targetTempFolder || ''
+      context.temp?.targetTempFolder || '',
+      context.temp?.srcTempRepo || ''
     );
 
     context.exec.targetExecOpt = execOpts;
+  } else {
+    context.exec.targetExecOpt = {
+      log,
+      cwd: context.temp?.targetTempRepo || '',
+      env: process.env,
+    };
   }
 };
-
 
 export const killSshProcesses = async (context: Context): Promise<void> => {
   const { log } = context;
