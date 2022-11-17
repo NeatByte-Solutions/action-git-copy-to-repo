@@ -3702,6 +3702,7 @@ const tempFolders_1 = __webpack_require__(897);
 const ssh_1 = __webpack_require__(110);
 const checkout_1 = __webpack_require__(444);
 const clear_1 = __webpack_require__(60);
+const copy_1 = __webpack_require__(970);
 const main = async (env = process.env, log) => {
     const context = await (0, context_1.createContext)(log);
     // process and validate config
@@ -3714,6 +3715,8 @@ const main = async (env = process.env, log) => {
     await (0, checkout_1.checkout)(context);
     // Delete globs from source and target
     await (0, clear_1.clear)(context);
+    // Copy files from source to target
+    await (0, copy_1.copy)(context);
     // Kill ssh processes if private keys were installed
     await (0, ssh_1.killSshProcesses)(context);
 };
@@ -7718,6 +7721,26 @@ class Reader {
 }
 exports.default = Reader;
 
+
+/***/ }),
+
+/***/ 970:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.copy = void 0;
+const processUtils_1 = __webpack_require__(961);
+const copy = async (context) => {
+    var _a;
+    const { log } = context;
+    const { srcTempRepo, targetTempRepo } = context.temp;
+    log.log(`##[info] Copying files: cp -rT "${srcTempRepo}"/ ${targetTempRepo}`);
+    await (0, processUtils_1.exec)(`cp -rT "${srcTempRepo}"/ ${targetTempRepo}`, (_a = context.exec) === null || _a === void 0 ? void 0 : _a.targetExecOpt);
+};
+exports.copy = copy;
+//# sourceMappingURL=copy.js.map
 
 /***/ }),
 
