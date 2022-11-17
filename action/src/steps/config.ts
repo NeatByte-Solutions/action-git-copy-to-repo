@@ -11,6 +11,7 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
       githubRepo: env.SRC_GITHUB_REPO,
       githubToken: env.SRC_GITHUB_TOKEN,
       branch: env.SRC_BRANCH,
+      globsToDelete: env.DELETE_FROM_SRC,
     },
     target: {
       sshRepo: env.TARGET_SSH_REPO,
@@ -20,6 +21,7 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
       githubToken: env.TARGET_GITHUB_TOKEN,
       branch: env.TARGET_BRANCH,
       baseBranch: env.TARGET_BASE_BRANCH || 'master',
+      globsToDelete: env.DELETE_FROM_TARGET,
     },
     commit: {
       message: env.COMMIT_MESSAGE,

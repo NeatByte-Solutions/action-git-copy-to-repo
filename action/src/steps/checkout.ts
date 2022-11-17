@@ -20,7 +20,7 @@ const clone = async ({ context, repoData, execOpts }: CheckoutProps) => {
     ? repoData?.sshRepo || ''
     : `https://x-access-token:${repoData?.githubToken}@github.com/${repoData?.githubRepo}.git`;
 
-  log.log(`##[info] Cloning the repo: git clone "${repo}"`);
+  log.log(`##[info] Cloning the repo: git clone "${repo}" "${execOpts.cwd}"`);
   try {
     await exec(`git clone "${repo}" .`, execOpts);
   } catch (err: any) {

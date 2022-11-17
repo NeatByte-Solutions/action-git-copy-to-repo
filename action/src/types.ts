@@ -37,6 +37,7 @@ export type RepoData = {
   githubToken?: string;
   branch?: string;
   baseBranch?: string;
+  globsToDelete?: string;
 };
 
 export type ConfigType = {
