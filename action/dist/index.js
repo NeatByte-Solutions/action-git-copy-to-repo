@@ -237,11 +237,7 @@ const clone = async ({ context, repoData, execOpts }) => {
         : `https://x-access-token:${repoData === null || repoData === void 0 ? void 0 : repoData.githubToken}@github.com/${repoData === null || repoData === void 0 ? void 0 : repoData.githubRepo}.git`;
     log.log(`##[info] Cloning the repo: git clone "${repo}"`);
     try {
-        // check if "." is working same as "tempFolder"
-        await (0, processUtils_1.exec)(`git clone "${repo}" ${execOpts.cwd}`, {
-            log,
-            env: execOpts === null || execOpts === void 0 ? void 0 : execOpts.env,
-        });
+        await (0, processUtils_1.exec)(`git clone "${repo}" .`, execOpts);
     }
     catch (err) {
         const s = err.toString();
@@ -502,7 +498,9 @@ const path = __importStar(__webpack_require__(622));
 const prepareTempFolders = async (context) => {
     const tempPath = await fs_1.promises.mkdtemp(path.join((0, os_1.tmpdir)(), 'action-git-copy-to-repo-'));
     await fs_1.promises.mkdir(path.join(tempPath, 'src'));
+    await fs_1.promises.mkdir(path.join(tempPath, 'src', 'repo'));
     await fs_1.promises.mkdir(path.join(tempPath, 'target'));
+    await fs_1.promises.mkdir(path.join(tempPath, 'target', 'repo'));
     context.temp = {
         srcTempFolder: path.join(tempPath, 'src'),
         targetTempFolder: path.join(tempPath, 'target'),

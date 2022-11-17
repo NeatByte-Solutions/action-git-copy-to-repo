@@ -22,11 +22,7 @@ const clone = async ({ context, repoData, execOpts }: CheckoutProps) => {
 
   log.log(`##[info] Cloning the repo: git clone "${repo}"`);
   try {
-    // check if "." is working same as "tempFolder"
-    await exec(`git clone "${repo}" ${execOpts.cwd}`, {
-      log,
-      env: execOpts?.env,
-    });
+    await exec(`git clone "${repo}" .`, execOpts);
   } catch (err: any) {
     const s = err.toString();
     if (repoData?.sshPrivateKey) {

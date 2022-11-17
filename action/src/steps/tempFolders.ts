@@ -7,7 +7,9 @@ export const prepareTempFolders = async (context: Context) => {
   const tempPath = await fs.mkdtemp(path.join(tmpdir(), 'action-git-copy-to-repo-'));
 
   await fs.mkdir(path.join(tempPath, 'src'));
+  await fs.mkdir(path.join(tempPath, 'src', 'repo'));
   await fs.mkdir(path.join(tempPath, 'target'));
+  await fs.mkdir(path.join(tempPath, 'target', 'repo'));
 
   context.temp = {
     srcTempFolder: path.join(tempPath, 'src'),
