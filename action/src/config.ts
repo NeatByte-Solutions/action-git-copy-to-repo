@@ -60,14 +60,12 @@ const genConfig: (env: EnvironmentVariables) => ConfigType = (
     src: getRepoData({
       repo: env.SRC_SSH_REPO || env.SRC_GITHUB_REPO || '',
       sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
-      // sshPrivateKey: env.SRC_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       githubToken: env.SRC_GITHUB_TOKEN,
       branch: env.SRC_BRANCH || '',
     }),
     target: getRepoData({
       repo: env.TARGET_SSH_REPO || env.TARGET_GITHUB_REPO || '',
       sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
-      // sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       githubToken: env.TARGET_GITHUB_TOKEN,
       branch: env.TARGET_BRANCH || '',
     }),
