@@ -6,8 +6,8 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
   context.config = {
     src: {
       sshRepo: env.SRC_SSH_REPO,
-      // sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
-      sshPrivateKey: env.SRC_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
+      // sshPrivateKey: env.SRC_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       githubRepo: env.SRC_GITHUB_REPO,
       githubToken: env.SRC_GITHUB_TOKEN,
       branch: env.SRC_BRANCH,
@@ -15,8 +15,8 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
     },
     target: {
       sshRepo: env.TARGET_SSH_REPO,
-      // sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
-      sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
+      // sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       githubRepo: env.TARGET_GITHUB_REPO,
       githubToken: env.TARGET_GITHUB_TOKEN,
       branch: env.TARGET_BRANCH,
