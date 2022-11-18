@@ -59,7 +59,7 @@ const checkIfBranchExists = async (branch: string, repo: string, execOpts: ExecO
 
 const checkoutBranch = async ({ context, repoData, execOpts }: CheckoutProps) => {
   const { log } = context;
-  const branch = repoData?.branch || 'master';
+  const branch = repoData?.branch || '';
   const repo = repoData?.sshRepo || repoData?.githubRepo || '';
 
   log.log(`##[info] Checkout branch "${branch}"`);

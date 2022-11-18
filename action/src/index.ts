@@ -3,6 +3,7 @@ import { EnvironmentVariables, Console, Context } from './types';
 import { createContext } from './context';
 import { config } from './steps/config';
 import { prepareTempFolders } from './steps/tempFolders';
+import { setupKnownHosts } from './steps/knownHosts';
 import { setupSshKeys, killSshProcesses } from './steps/ssh';
 import { checkout } from './steps/checkout';
 import { clear } from './steps/clear';
@@ -12,13 +13,16 @@ import { commit } from './steps/commit';
 export const main = async (env: EnvironmentVariables = process.env, log: Console) => {
   const context: Context = await createContext(log);
 
-  // process and validate config
+  // Process and validate config
   await config(env, context);
 
-  // calculate paths that use temp directories
+  // Calculate paths that use temp directories
   await prepareTempFolders(context);
 
-  // if needed setup ssh keys for git access
+  // Copy known hosts file that has most popular public Git repo domains
+  await setupKnownHosts(context);
+
+  // If needed setup ssh keys for git access
   await setupSshKeys(context);
 
   // Clone branches

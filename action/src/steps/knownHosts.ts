@@ -14,7 +14,7 @@ const KNOWN_HOSTS_DEFAULT = path.join(path.dirname(__dirname), '../../resources/
 
 // setup known hosts file for secure  git ssh access
 // if none value was passed via env vars - use default with most popular Git hosting services (aka: Github, Gitlab, Bitbucket)
-const setupKnownHosts = async (context: Context): Promise<void> => {
+export const setupKnownHosts = async (context: Context): Promise<void> => {
   const { log } = context;
 
   // TODO: add skip option for this step???
@@ -33,5 +33,3 @@ const setupKnownHosts = async (context: Context): Promise<void> => {
   // copy known hosts file to ~/.ssh folder
   await fs.copyFile(knownHostsFilepath, KNOWN_HOSTS_TARGET);
 };
-
-export default setupKnownHosts;
