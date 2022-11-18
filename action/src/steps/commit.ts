@@ -48,7 +48,7 @@ export const commit = async (context: Context) => {
   const { log } = context;
   const { message, author, authorEmail } = context.config?.commit || {};
 
-  await exec(`git add -A .`, context.exec?.targetExecOpt);
+  await exec(`git add -f -A .`, context.exec?.targetExecOpt);
   log.log(`##[info] Committing: git commit -m "${message}" --author="${author} <${authorEmail}>"`);
   await git.commit({
     fs: fsModule,

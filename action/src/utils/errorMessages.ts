@@ -1,6 +1,7 @@
 export const KNOWN_HOSTS_WARNING = `
-##[warning] KNOWN_HOSTS_FILE not set
-This will probably mean that host verification will fail later on
+##[warning] Using default known host file (supports GitHub, GitLab).
+Host verification will fail later if other domain is used.
+You can use KNOWN_HOSTS_FILE option to fix it.
 `;
 
 export const KNOWN_HOSTS_ERROR = `

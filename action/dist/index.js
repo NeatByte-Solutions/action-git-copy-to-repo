@@ -3742,7 +3742,7 @@ const commit = async (context) => {
     var _a, _b;
     const { log } = context;
     const { message, author, authorEmail } = ((_a = context.config) === null || _a === void 0 ? void 0 : _a.commit) || {};
-    await (0, processUtils_1.exec)(`git add -A .`, (_b = context.exec) === null || _b === void 0 ? void 0 : _b.targetExecOpt);
+    await (0, processUtils_1.exec)(`git add -f -A .`, (_b = context.exec) === null || _b === void 0 ? void 0 : _b.targetExecOpt);
     log.log(`##[info] Committing: git commit -m "${message}" --author="${author} <${authorEmail}>"`);
     await isomorphic_git_1.default.commit({
         fs: fs_1.default,
@@ -14290,8 +14290,9 @@ module.exports = braces;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SSH_KEY_ERROR = exports.KNOWN_HOSTS_ERROR = exports.KNOWN_HOSTS_WARNING = void 0;
 exports.KNOWN_HOSTS_WARNING = `
-##[warning] KNOWN_HOSTS_FILE not set
-This will probably mean that host verification will fail later on
+##[warning] Using default known host file (supports GitHub, GitLab).
+Host verification will fail later if other domain is used.
+You can use KNOWN_HOSTS_FILE option to fix it.
 `;
 exports.KNOWN_HOSTS_ERROR = `
 ##[error] Host key verification failed!
