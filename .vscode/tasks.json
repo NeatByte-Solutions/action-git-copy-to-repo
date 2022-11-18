@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "build",
+			"path": "action",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "npm: build - action",
+			"detail": "tsc && ncc build lib/run"
+		}
+	]
+}

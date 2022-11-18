@@ -1,54 +1,38 @@
-import { promises as fs } from 'fs';
-import { tmpdir } from 'os';
-import * as path from 'path';
-import genConfig from './config';
-import { Console } from './types';
-import checkout from './checkout';
-import checkoutTargetBranch from './checkoutTargetBranch';
-import { EnvironmentVariables } from './types';
+import { EnvironmentVariables, Console, Context } from './types';
 
-export const main = async ({
-  env = process.env,
-  log,
-}: {
-  env?: EnvironmentVariables;
-  log: Console;
-}) => {
-  // create config
-  const config = genConfig(env);
+import { createContext } from './context';
+import { config } from './steps/config';
+import { prepareTempFolders } from './steps/tempFolders';
+import { setupSshKeys, killSshProcesses } from './steps/ssh';
+import { checkout } from './steps/checkout';
+import { clear } from './steps/clear';
+import { copy } from './steps/copy';
+import { commit } from './steps/commit';
 
-  // Calculate paths that use temp diractory
-  const TMP_PATH = await fs.mkdtemp(
-    path.join(tmpdir(), 'git-publish-subdir-action-')
-  );
-  const SRC_REPO_TEMP = path.join(TMP_PATH, 'repo/src');
-  const TARGET_REPO_TEMP = path.join(TMP_PATH, 'repo/target');
-  const SSH_AUTH_SOCK = path.join(TMP_PATH, 'ssh_agent.sock');
+export const main = async (env: EnvironmentVariables = process.env, log: Console) => {
+  const context: Context = await createContext(log);
 
-  // Environment to pass to children
-  const childEnv = Object.assign({}, process.env, {
-    SSH_AUTH_SOCK,
-  });
+  // process and validate config
+  await config(env, context);
 
-  await checkout({
-    config: config.src,
-    tmpFolder: SRC_REPO_TEMP,
-    knownHostsFile: config.knownHostsFile,
-    childEnv,
-    log,
-  });
-  await checkout({
-    config: config.target,
-    tmpFolder: TARGET_REPO_TEMP,
-    knownHostsFile: config.knownHostsFile,
-    childEnv,
-    log,
-  });
+  // calculate paths that use temp directories
+  await prepareTempFolders(context);
 
-  await checkoutTargetBranch({
-    config: config.target,
-    tmpFolder: TARGET_REPO_TEMP,
-    childEnv,
-    log,
-  });
+  // if needed setup ssh keys for git access
+  await setupSshKeys(context);
+
+  // Clone branches
+  await checkout(context);
+
+  // Delete globs from source and target
+  await clear(context);
+
+  // Copy files from source to target
+  await copy(context);
+
+  // Commit and push target
+  await commit(context);
+
+  // Kill ssh processes if private keys were installed
+  await killSshProcesses(context);
 };

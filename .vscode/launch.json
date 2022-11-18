@@ -1,0 +1,29 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/action/src/run.ts",
+      "preLaunchTask": "npm: build - action",
+      "outFiles": ["${workspaceFolder}/action/lib/**/*.js"],
+      "env": {
+        "SRC_SSH_REPO": "git@gitlab.com:neatbyte-solutions/action-git-copy-to-repo.git",
+        "SRC_SSH_PRIVATE_KEY": "${{ secrets.SSH_PRIVATE_KEY }}",
+        "SRC_BRANCH": "main",
+        "TARGET_GITHUB_REPO": "NeatByte-Solutions/action-git-copy-to-repo",
+        "TARGET_GITHUB_TOKEN": "${{ secrets.GH_TOKEN }}",
+        "TARGET_BRANCH": "test",
+        "TARGET_BASE_BRANCH": "main",
+        "COMMIT_MESSAGE": "some msg",
+        "COMMIT_AUTHOR": "Vitalii",
+        "COMMIT_AUTHOR_EMAIL": "vitalii@gmail.com",
+        "KNOWN_HOSTS_FILE": "action/resources/known_hosts"
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ export interface EnvironmentVariables {
   TARGET_GITHUB_REPO?: string;
   TARGET_GITHUB_TOKEN?: string;
   TARGET_BRANCH?: string;
+  TARGET_BASE_BRANCH?: string;
   DELETE_FROM_SRC?: string;
   DELETE_FROM_TARGET?: string;
   COMMIT_MESSAGE?: string;
@@ -29,25 +30,46 @@ declare global {
   }
 }
 
-export type githubRepoData = {
-  mode: 'github';
-  repo: string;
-  branch: string;
+export type RepoData = {
+  sshRepo?: string;
+  sshPrivateKey?: string;
+  githubRepo?: string;
+  githubToken?: string;
+  branch?: string;
+  baseBranch?: string;
+  globsToDelete?: string;
 };
 
-export type sshRepoData = {
-  mode: 'ssh';
-  repo: string;
-  sshPrivateKey: string;
-  branch: string;
-};
-
-export type CheckoutProps = {
-  config: githubRepoData | sshRepoData;
-  tmpFolder: string;
-  childEnv: NodeJS.ProcessEnv & {
-    SSH_AUTH_SOCK: string;
+export type ConfigType = {
+  src: RepoData;
+  target: RepoData;
+  commit: {
+    message?: string;
+    author?: string;
+    authorEmail?: string;
   };
   knownHostsFile?: string;
+};
+
+export type ExecOpts = {
+  env?: any;
+  cwd?: string;
   log: Console;
+};
+
+export type Context = {
+  log: Console;
+  config?: ConfigType;
+  temp: {
+    srcTempFolder?: string;
+    targetTempFolder?: string;
+    srcTempRepo?: string;
+    targetTempRepo?: string;
+    srcSSHAuthSock?: string;
+    targetSSHAuthSock?: string;
+  };
+  exec: {
+    srcExecOpt: ExecOpts;
+    targetExecOpt: ExecOpts;
+  };
 };
