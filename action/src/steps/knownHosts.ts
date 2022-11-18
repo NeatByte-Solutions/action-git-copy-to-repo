@@ -10,7 +10,7 @@ import { KNOWN_HOSTS_WARNING } from '../utils/errorMessages';
 const SSH_FOLDER = path.join(homedir(), '.ssh');
 const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
 
-const KNOWN_HOSTS_DEFAULT = path.join(path.dirname(__dirname), 'action/resources/known_hosts');
+const KNOWN_HOSTS_DEFAULT = path.join(path.dirname(__dirname), 'resources/known_hosts');
 
 // setup known hosts file for secure  git ssh access
 // if none value was passed via env vars - use default with most popular Git hosting services (aka: Github, Gitlab, Bitbucket)
