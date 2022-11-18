@@ -544,7 +544,7 @@ exports.clear = void 0;
 const fast_glob_1 = __webpack_require__(406);
 const fs_1 = __webpack_require__(747);
 const parseGlobs_1 = __webpack_require__(616);
-const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder }) => {
+const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder, logDeleted = false, }) => {
     const { log } = context;
     const globs = (0, parseGlobs_1.parseGlobs)(globsToDelete, defaultGlobs);
     log.log(`##[info] Deleting globs ${globs} from "${repoFolder}"`);
@@ -557,6 +557,9 @@ const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder })
     // Delete all files from the filestream
     for await (const entry of filesToDelete) {
         await fs_1.promises.unlink(entry);
+        if (logDeleted) {
+            log.log(`Deleted file: ${entry}`);
+        }
     }
 };
 const clear = async (context) => {
@@ -567,6 +570,7 @@ const clear = async (context) => {
         globsToDelete: ((_b = (_a = context.config) === null || _a === void 0 ? void 0 : _a.src) === null || _b === void 0 ? void 0 : _b.globsToDelete) || '',
         defaultGlobs: ['.git/**'],
         repoFolder: (_c = context.temp) === null || _c === void 0 ? void 0 : _c.srcTempRepo,
+        logDeleted: true,
     });
     // Delete target globs
     await deleteGlobs({
