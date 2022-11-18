@@ -3225,12 +3225,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
 const config = async (env, context) => {
     // TODO: Validation, use yup schema
-    var _a, _b;
     context.config = {
         src: {
             sshRepo: env.SRC_SSH_REPO,
-            // sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
-            sshPrivateKey: (_a = env.SRC_SSH_PRIVATE_KEY) === null || _a === void 0 ? void 0 : _a.replace(/\\n/g, '\n'),
+            sshPrivateKey: env.SRC_SSH_PRIVATE_KEY,
             githubRepo: env.SRC_GITHUB_REPO,
             githubToken: env.SRC_GITHUB_TOKEN,
             branch: env.SRC_BRANCH,
@@ -3238,8 +3236,7 @@ const config = async (env, context) => {
         },
         target: {
             sshRepo: env.TARGET_SSH_REPO,
-            // sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
-            sshPrivateKey: (_b = env.TARGET_SSH_PRIVATE_KEY) === null || _b === void 0 ? void 0 : _b.replace(/\\n/g, '\n'),
+            sshPrivateKey: env.TARGET_SSH_PRIVATE_KEY,
             githubRepo: env.TARGET_GITHUB_REPO,
             githubToken: env.TARGET_GITHUB_TOKEN,
             branch: env.TARGET_BRANCH,
