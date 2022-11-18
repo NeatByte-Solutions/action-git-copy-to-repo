@@ -3411,7 +3411,7 @@ const errorMessages_1 = __webpack_require__(788);
 // Paths
 const SSH_FOLDER = path.join((0, os_1.homedir)(), '.ssh');
 const KNOWN_HOSTS_TARGET = path.join(SSH_FOLDER, 'known_hosts');
-const KNOWN_HOSTS_DEFAULT = path.join(path.dirname(__dirname), '../../resources/known_hosts');
+const KNOWN_HOSTS_DEFAULT = path.join(path.dirname(__dirname), '../resources/known_hosts');
 // setup known hosts file for secure  git ssh access
 // if none value was passed via env vars - use default with most popular Git hosting services (aka: Github, Gitlab, Bitbucket)
 const setupKnownHosts = async (context) => {
