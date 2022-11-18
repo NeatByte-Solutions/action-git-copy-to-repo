@@ -18,6 +18,7 @@ const checkIfChanged = async (context: Context) => {
     dir,
     oid: head,
   });
+
   if (currentCommit.commit.parent.length === 1) {
     const previousCommit = await git.readCommit({
       fs: fsModule,
@@ -26,40 +27,41 @@ const checkIfChanged = async (context: Context) => {
     });
     if (currentCommit.commit.tree === previousCommit.commit.tree) {
       log.log(`##[info] Contents of target repo unchanged, exiting.`);
-      return;
+      return false;
     }
   }
+
+  return true;
 };
 
 const push = async (context: Context) => {
   const { log } = context;
-  const folder = context.temp.targetTempRepo;
+  const branch = context.config?.target.branch;
 
-  log.log(`##[info] Pushing: git push origin "${folder}"`);
-  const push = await exec(`git push origin "${folder}"`, context.exec.targetExecOpt);
+  log.log(`##[info] Pushing: git push origin ${branch}`);
+  const push = await exec(`git push origin ${branch}`, context.exec.targetExecOpt);
   log.log(push.stdout);
   log.log(`##[info] Deployment Successful`);
 };
 
 export const commit = async (context: Context) => {
-  // const { log } = context;
-  // await exec(`git add -A .`, context.exec?.targetExecOpt);
-  // const message = config.message
-  //   .replace(/\{target\-branch\}/g, config.branch)
-  //   .replace(/\{sha\}/g, gitInfo.sha.substr(0, 7))
-  //   .replace(/\{long\-sha\}/g, gitInfo.sha)
-  //   .replace(/\{msg\}/g, gitInfo.commitMessage);
-  // await git.commit({
-  //   fs: fsModule,
-  //   dir: REPO_TEMP,
-  //   message,
-  //   author: { email, name },
-  // });
+  const { log } = context;
+  const { message, author, authorEmail } = context.config?.commit || {};
+
+  await exec(`git add -A .`, context.exec?.targetExecOpt);
+  log.log(`##[info] Committing: git commit -m "${message}" --author="${author} <${authorEmail}>"`);
+  await git.commit({
+    fs: fsModule,
+    dir: context.temp.targetTempRepo,
+    message: message || '',
+    author: { email: authorEmail, name: author },
+  });
 
   // Before we push, check whether it changed the tree,
   // and avoid pushing if not
-  checkIfChanged(context);
+  const isChanged = await checkIfChanged(context);
 
-  // Push branch
-  push(context);
+  if (isChanged) {
+    await push(context);
+  }
 };
