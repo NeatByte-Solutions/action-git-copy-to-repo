@@ -89,7 +89,7 @@ export const setupSshKeys = async (context: Context): Promise<void> => {
       context,
       context.config?.target,
       context.temp?.targetTempFolder || '',
-      context.temp?.srcTempRepo || ''
+      context.temp?.targetTempRepo || ''
     );
 
     context.exec.targetExecOpt = execOpts;

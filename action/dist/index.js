@@ -958,7 +958,7 @@ const setupSshKeys = async (context) => {
     }
     if ((_h = (_g = context.config) === null || _g === void 0 ? void 0 : _g.target) === null || _h === void 0 ? void 0 : _h.sshPrivateKey) {
         log.log(`##[info] Setting ssh key for target repo`);
-        const execOpts = await setupSshKeysForRepo(context, (_j = context.config) === null || _j === void 0 ? void 0 : _j.target, ((_k = context.temp) === null || _k === void 0 ? void 0 : _k.targetTempFolder) || '', ((_l = context.temp) === null || _l === void 0 ? void 0 : _l.srcTempRepo) || '');
+        const execOpts = await setupSshKeysForRepo(context, (_j = context.config) === null || _j === void 0 ? void 0 : _j.target, ((_k = context.temp) === null || _k === void 0 ? void 0 : _k.targetTempFolder) || '', ((_l = context.temp) === null || _l === void 0 ? void 0 : _l.targetTempRepo) || '');
         context.exec.targetExecOpt = execOpts;
     }
     else {
