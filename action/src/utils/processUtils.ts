@@ -53,9 +53,10 @@ export const exec = async (
 export const writeToProcess = (
   command: string,
   args: string[],
+  data: string,
   opts: {
-    env: { [id: string]: string | undefined };
-    data: string;
+    env?: any;
+    cwd?: string;
     log: Console;
   }
 ) =>
@@ -65,7 +66,7 @@ export const writeToProcess = (
       stdio: 'pipe',
     });
     child.stdin.setDefaultEncoding('utf-8');
-    child.stdin.write(opts.data);
+    child.stdin.write(data);
     child.stdin.end();
     child.on('error', reject);
     let stderr = '';

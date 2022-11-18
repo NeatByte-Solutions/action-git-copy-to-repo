@@ -937,12 +937,7 @@ const setupSshKeysForRepo = async (context, repoData, tempFolder, tempRepoFolder
         SSH_AGENT_PID: sshAgentMatch[1],
         SSH_AUTH_SOCK,
     }, tempRepoFolder);
-    // TODO: tune writeToProcess func to use execOpts object
-    await (0, processUtils_1.writeToProcess)('ssh-add', ['-'], {
-        data: repoData.sshPrivateKey + '\n',
-        log,
-        env: execOpts.env,
-    });
+    await (0, processUtils_1.writeToProcess)('ssh-add', ['-'], repoData.sshPrivateKey + '\n', execOpts);
     log.log(`Private key added to ssh agent at ${SSH_AUTH_SOCK}`);
     return execOpts;
 };
@@ -30628,13 +30623,13 @@ const exec = async (cmd, opts) => {
     }));
 };
 exports.exec = exec;
-const writeToProcess = (command, args, opts) => new Promise((resolve, reject) => {
+const writeToProcess = (command, args, data, opts) => new Promise((resolve, reject) => {
     const child = child_process.spawn(command, args, {
         env: opts.env,
         stdio: 'pipe',
     });
     child.stdin.setDefaultEncoding('utf-8');
-    child.stdin.write(opts.data);
+    child.stdin.write(data);
     child.stdin.end();
     child.on('error', reject);
     let stderr = '';

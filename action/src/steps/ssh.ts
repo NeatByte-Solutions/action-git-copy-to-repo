@@ -53,12 +53,7 @@ const setupSshKeysForRepo = async (
     tempRepoFolder
   );
 
-  // TODO: tune writeToProcess func to use execOpts object
-  await writeToProcess('ssh-add', ['-'], {
-    data: repoData.sshPrivateKey + '\n',
-    log,
-    env: execOpts.env,
-  });
+  await writeToProcess('ssh-add', ['-'], repoData.sshPrivateKey + '\n', execOpts);
 
   log.log(`Private key added to ssh agent at ${SSH_AUTH_SOCK}`);
 
