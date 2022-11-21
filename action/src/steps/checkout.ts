@@ -8,13 +8,7 @@ class NoSuchBranchError extends Error {
   }
 }
 
-type CheckoutProps = {
-  context: Context;
-  repoData?: RepoData;
-  execOpts: ExecOpts;
-};
-
-const clone = async ({ context, repoData, execOpts }: CheckoutProps) => {
+const clone = async (context: Context, repoData: RepoData, execOpts: ExecOpts) => {
   const { log } = context;
   const repo = repoData?.sshPrivateKey
     ? repoData?.sshRepo || ''
@@ -57,7 +51,7 @@ const checkIfBranchExists = async (branch: string, repo: string, execOpts: ExecO
   }
 };
 
-const checkoutBranch = async ({ context, repoData, execOpts }: CheckoutProps) => {
+const checkoutBranch = async (context: Context, repoData: RepoData, execOpts: ExecOpts) => {
   const { log } = context;
   const branch = repoData?.branch || '';
   const repo = repoData?.sshRepo || repoData?.githubRepo || '';
@@ -76,18 +70,14 @@ const checkoutBranch = async ({ context, repoData, execOpts }: CheckoutProps) =>
   }
 };
 
-const createNewBranch = async ({ context, repoData, execOpts }: CheckoutProps) => {
+const createNewBranch = async (context: Context, repoData: RepoData, execOpts: ExecOpts) => {
   const { log } = context;
 
   log.log(`##[info] ${repoData?.branch} does not exist, creating new one`);
   try {
     // Checkout base branch if specified
     if (repoData?.baseBranch) {
-      await checkoutBranch({
-        context,
-        repoData: { ...repoData, branch: repoData?.baseBranch },
-        execOpts,
-      });
+      await checkoutBranch(context, { ...repoData, branch: repoData?.baseBranch }, execOpts);
     }
     // Create new branch
     await exec(`git checkout -b "${repoData?.branch}"`, execOpts);
@@ -101,45 +91,55 @@ const createNewBranch = async ({ context, repoData, execOpts }: CheckoutProps) =
   }
 };
 
-const switchOrCreateBranch = async (props: CheckoutProps) => {
+const switchOrCreateBranch = async (context: Context, repoData: RepoData, execOpts: ExecOpts) => {
   try {
     // Try to checkout branch
-    await checkoutBranch(props);
+    await checkoutBranch(context, repoData, execOpts);
   } catch (err) {
     if (err instanceof NoSuchBranchError) {
       // Create new branch if it does not exists yet
-      await createNewBranch(props);
+      await createNewBranch(context, repoData, execOpts);
     } else {
       throw err;
     }
   }
 };
 
-const checkoutSrc = async (params: CheckoutProps) => {
-  // Clone source repo
-  await clone(params);
-
-  // Switch to source branch
-  await checkoutBranch(params);
+type CheckoutProps = {
+  context: Context;
+  repoData: RepoData;
+  execOpts: ExecOpts;
 };
 
-const checkoutTarget = async (params: CheckoutProps) => {
-  // Clone target repo
-  await clone(params);
+const checkoutSrc = async ({ context, repoData, execOpts }: CheckoutProps) => {
+  // Clone source repo
+  await clone(context, repoData, execOpts);
 
-  // Switch to target branch or create new one if such doesn't exist
-  await switchOrCreateBranch(params);
+  if (repoData?.branch) {
+    // Switch to source branch
+    await checkoutBranch(context, repoData, execOpts);
+  }
+};
+
+const checkoutTarget = async ({ context, repoData, execOpts }: CheckoutProps) => {
+  // Clone target repo
+  await clone(context, repoData, execOpts);
+
+  if (repoData?.branch) {
+    // Switch to target branch or create new one if such doesn't exist
+    await switchOrCreateBranch(context, repoData, execOpts);
+  }
 };
 
 export const checkout = async (context: Context) => {
   const srcParams = {
     context,
-    repoData: context.config?.src,
+    repoData: context.config?.src || {},
     execOpts: context.exec.srcExecOpt,
   };
   const targetParams = {
     context,
-    repoData: context.config?.target,
+    repoData: context.config?.target || {},
     execOpts: context.exec.targetExecOpt,
   };
 
