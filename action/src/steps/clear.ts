@@ -1,7 +1,16 @@
 import { stream as fgStream } from 'fast-glob';
 import { promises as fs } from 'fs';
 import { Context } from '../types';
-import { parseGlobs } from '../utils/parseGlobs';
+
+const parseGlobs = (configStr: string, defaultGlobs: string[]) => {
+  const globList = configStr
+    .toString()
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s !== '');
+
+  return [...globList, ...defaultGlobs];
+};
 
 type DeleteGlobs = {
   context: Context;
@@ -32,7 +41,7 @@ const deleteGlobs = async ({
   // Delete all files from the filestream
   for await (const entry of filesToDelete) {
     await fs.unlink(entry);
-    if(logDeleted){
+    if (logDeleted) {
       log.log(`Deleted file: ${entry}`);
     }
   }

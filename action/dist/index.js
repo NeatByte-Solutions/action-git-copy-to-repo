@@ -543,10 +543,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.clear = void 0;
 const fast_glob_1 = __webpack_require__(406);
 const fs_1 = __webpack_require__(747);
-const parseGlobs_1 = __webpack_require__(616);
+const parseGlobs = (configStr, defaultGlobs) => {
+    const globList = configStr
+        .toString()
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s !== '');
+    return [...globList, ...defaultGlobs];
+};
 const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder, logDeleted = false, }) => {
     const { log } = context;
-    const globs = (0, parseGlobs_1.parseGlobs)(globsToDelete, defaultGlobs);
+    const globs = parseGlobs(globsToDelete, defaultGlobs);
     log.log(`##[info] Deleting globs ${globs} from "${repoFolder}"`);
     const filesToDelete = (0, fast_glob_1.stream)(globs, {
         absolute: true,
@@ -3650,7 +3657,7 @@ const config = async (env, context) => {
             githubRepo: env.TARGET_GITHUB_REPO,
             githubToken: env.TARGET_GITHUB_TOKEN,
             branch: env.TARGET_BRANCH,
-            baseBranch: env.TARGET_BASE_BRANCH || 'master',
+            baseBranch: env.TARGET_BASE_BRANCH,
             globsToDelete: env.DELETE_FROM_TARGET,
         },
         commit: {
@@ -10490,7 +10497,7 @@ class NoSuchBranchError extends Error {
         super(`Failed to checkout branch "${branch}" from repository "${repo}"`);
     }
 }
-const clone = async ({ context, repoData, execOpts }) => {
+const clone = async (context, repoData, execOpts) => {
     const { log } = context;
     const repo = (repoData === null || repoData === void 0 ? void 0 : repoData.sshPrivateKey)
         ? (repoData === null || repoData === void 0 ? void 0 : repoData.sshRepo) || ''
@@ -10532,7 +10539,7 @@ const checkIfBranchExists = async (branch, repo, execOpts) => {
         }
     }
 };
-const checkoutBranch = async ({ context, repoData, execOpts }) => {
+const checkoutBranch = async (context, repoData, execOpts) => {
     const { log } = context;
     const branch = (repoData === null || repoData === void 0 ? void 0 : repoData.branch) || '';
     const repo = (repoData === null || repoData === void 0 ? void 0 : repoData.sshRepo) || (repoData === null || repoData === void 0 ? void 0 : repoData.githubRepo) || '';
@@ -10549,17 +10556,13 @@ const checkoutBranch = async ({ context, repoData, execOpts }) => {
         throw err;
     }
 };
-const createNewBranch = async ({ context, repoData, execOpts }) => {
+const createNewBranch = async (context, repoData, execOpts) => {
     const { log } = context;
     log.log(`##[info] ${repoData === null || repoData === void 0 ? void 0 : repoData.branch} does not exist, creating new one`);
     try {
         // Checkout base branch if specified
         if (repoData === null || repoData === void 0 ? void 0 : repoData.baseBranch) {
-            await checkoutBranch({
-                context,
-                repoData: { ...repoData, branch: repoData === null || repoData === void 0 ? void 0 : repoData.baseBranch },
-                execOpts,
-            });
+            await checkoutBranch(context, { ...repoData, branch: repoData === null || repoData === void 0 ? void 0 : repoData.baseBranch }, execOpts);
         }
         // Create new branch
         await (0, processUtils_1.exec)(`git checkout -b "${repoData === null || repoData === void 0 ? void 0 : repoData.branch}"`, execOpts);
@@ -10571,43 +10574,47 @@ const createNewBranch = async ({ context, repoData, execOpts }) => {
         throw err;
     }
 };
-const switchOrCreateBranch = async (props) => {
+const switchOrCreateBranch = async (context, repoData, execOpts) => {
     try {
         // Try to checkout branch
-        await checkoutBranch(props);
+        await checkoutBranch(context, repoData, execOpts);
     }
     catch (err) {
         if (err instanceof NoSuchBranchError) {
             // Create new branch if it does not exists yet
-            await createNewBranch(props);
+            await createNewBranch(context, repoData, execOpts);
         }
         else {
             throw err;
         }
     }
 };
-const checkoutSrc = async (params) => {
+const checkoutSrc = async ({ context, repoData, execOpts }) => {
     // Clone source repo
-    await clone(params);
-    // Switch to source branch
-    await checkoutBranch(params);
+    await clone(context, repoData, execOpts);
+    if (repoData === null || repoData === void 0 ? void 0 : repoData.branch) {
+        // Switch to source branch
+        await checkoutBranch(context, repoData, execOpts);
+    }
 };
-const checkoutTarget = async (params) => {
+const checkoutTarget = async ({ context, repoData, execOpts }) => {
     // Clone target repo
-    await clone(params);
-    // Switch to target branch or create new one if such doesn't exist
-    await switchOrCreateBranch(params);
+    await clone(context, repoData, execOpts);
+    if (repoData === null || repoData === void 0 ? void 0 : repoData.branch) {
+        // Switch to target branch or create new one if such doesn't exist
+        await switchOrCreateBranch(context, repoData, execOpts);
+    }
 };
 const checkout = async (context) => {
     var _a, _b;
     const srcParams = {
         context,
-        repoData: (_a = context.config) === null || _a === void 0 ? void 0 : _a.src,
+        repoData: ((_a = context.config) === null || _a === void 0 ? void 0 : _a.src) || {},
         execOpts: context.exec.srcExecOpt,
     };
     const targetParams = {
         context,
-        repoData: (_b = context.config) === null || _b === void 0 ? void 0 : _b.target,
+        repoData: ((_b = context.config) === null || _b === void 0 ? void 0 : _b.target) || {},
         execOpts: context.exec.targetExecOpt,
     };
     await checkoutSrc(srcParams);
@@ -12138,26 +12145,6 @@ module.exports = crc32;
 /***/ (function(module) {
 
 module.exports = require("events");
-
-/***/ }),
-
-/***/ 616:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseGlobs = void 0;
-const parseGlobs = (configStr, defaultGlobs) => {
-    const globList = configStr
-        .toString()
-        .split('\n')
-        .map((s) => s.trim())
-        .filter((s) => s !== '');
-    return [...globList, ...defaultGlobs];
-};
-exports.parseGlobs = parseGlobs;
-//# sourceMappingURL=parseGlobs.js.map
 
 /***/ }),
 
