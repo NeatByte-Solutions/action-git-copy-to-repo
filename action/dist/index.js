@@ -3744,9 +3744,16 @@ const push = async (context) => {
     var _a;
     const { log } = context;
     const branch = (_a = context.config) === null || _a === void 0 ? void 0 : _a.target.branch;
-    log.log(`##[info] Pushing: git push origin ${branch}`);
-    const push = await (0, processUtils_1.exec)(`git push origin ${branch}`, context.exec.targetExecOpt);
-    log.log(push.stdout);
+    if (branch) {
+        log.log(`##[info] Pushing: git push origin ${branch}`);
+        const push = await (0, processUtils_1.exec)(`git push origin ${branch}`, context.exec.targetExecOpt);
+        log.log(push.stdout);
+    }
+    else {
+        log.log(`##[info] Pushing: git push`);
+        const push = await (0, processUtils_1.exec)(`git push`, context.exec.targetExecOpt);
+        log.log(push.stdout);
+    }
     log.log(`##[info] Deployment Successful`);
 };
 const commit = async (context) => {
