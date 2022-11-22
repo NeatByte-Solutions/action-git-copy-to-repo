@@ -38,9 +38,16 @@ const push = async (context: Context) => {
   const { log } = context;
   const branch = context.config?.target.branch;
 
-  log.log(`##[info] Pushing: git push origin ${branch}`);
-  const push = await exec(`git push origin ${branch}`, context.exec.targetExecOpt);
-  log.log(push.stdout);
+  if (branch) {
+    log.log(`##[info] Pushing: git push origin ${branch}`);
+    const push = await exec(`git push origin ${branch}`, context.exec.targetExecOpt);
+    log.log(push.stdout);
+  } else {
+    log.log(`##[info] Pushing: git push`);
+    const push = await exec(`git push`, context.exec.targetExecOpt);
+    log.log(push.stdout);
+  }
+
   log.log(`##[info] Deployment Successful`);
 };
 
