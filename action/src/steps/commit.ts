@@ -39,9 +39,16 @@ const push = async (context: Context, force?: boolean) => {
   const branch = context.config?.target.branch;
   const forceFlag = force ? '--force ' : '';
 
-  log.log(`##[info] Pushing: git push ${forceFlag} origin ${branch}`);
-  const push = await exec(`git push ${forceFlag} origin ${branch}`, context.exec.targetExecOpt);
-  log.log(push.stdout);
+  if (branch) {
+    log.log(`##[info] Pushing: git push ${forceFlag} origin ${branch}`);
+    const push = await exec(`git push ${forceFlag} origin ${branch}`, context.exec.targetExecOpt);
+    log.log(push.stdout);
+  } else {
+    log.log(`##[info] Pushing: git push ${forceFlag}`);
+    const push = await exec(`git push ${forceFlag}`, context.exec.targetExecOpt);
+    log.log(push.stdout);
+  }
+
   log.log(`##[info] Deployment Successful`);
 };
 

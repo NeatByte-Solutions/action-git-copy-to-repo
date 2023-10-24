@@ -3709,7 +3709,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.commit = void 0;
+exports.revertCommit = exports.commit = void 0;
 const isomorphic_git_1 = __importDefault(__webpack_require__(956));
 const fs_1 = __importDefault(__webpack_require__(747));
 const processUtils_1 = __webpack_require__(961);
@@ -3740,13 +3740,21 @@ const checkIfChanged = async (context) => {
     }
     return true;
 };
-const push = async (context) => {
+const push = async (context, force) => {
     var _a;
     const { log } = context;
     const branch = (_a = context.config) === null || _a === void 0 ? void 0 : _a.target.branch;
-    log.log(`##[info] Pushing: git push origin ${branch}`);
-    const push = await (0, processUtils_1.exec)(`git push origin ${branch}`, context.exec.targetExecOpt);
-    log.log(push.stdout);
+    const forceFlag = force ? '--force ' : '';
+    if (branch) {
+        log.log(`##[info] Pushing: git push ${forceFlag} origin ${branch}`);
+        const push = await (0, processUtils_1.exec)(`git push ${forceFlag} origin ${branch}`, context.exec.targetExecOpt);
+        log.log(push.stdout);
+    }
+    else {
+        log.log(`##[info] Pushing: git push ${forceFlag}`);
+        const push = await (0, processUtils_1.exec)(`git push ${forceFlag}`, context.exec.targetExecOpt);
+        log.log(push.stdout);
+    }
     log.log(`##[info] Deployment Successful`);
 };
 const commit = async (context) => {
@@ -3769,6 +3777,14 @@ const commit = async (context) => {
     }
 };
 exports.commit = commit;
+const revertCommit = async (context) => {
+    var _a;
+    const { log } = context;
+    log.log(`##[info] Reverting last commit: git reset --hard HEAD^1`);
+    await (0, processUtils_1.exec)(`git reset --hard HEAD^1`, (_a = context.exec) === null || _a === void 0 ? void 0 : _a.targetExecOpt);
+    await push(context, true);
+};
+exports.revertCommit = revertCommit;
 //# sourceMappingURL=commit.js.map
 
 /***/ }),
@@ -10605,7 +10621,7 @@ const checkoutTarget = async ({ context, repoData, execOpts }) => {
         await switchOrCreateBranch(context, repoData, execOpts);
     }
 };
-const checkout = async (context) => {
+const checkout = async (context, skipSource) => {
     var _a, _b;
     const srcParams = {
         context,
@@ -10617,7 +10633,9 @@ const checkout = async (context) => {
         repoData: ((_b = context.config) === null || _b === void 0 ? void 0 : _b.target) || {},
         execOpts: context.exec.targetExecOpt,
     };
-    await checkoutSrc(srcParams);
+    if (!skipSource) {
+        await checkoutSrc(srcParams);
+    }
     await checkoutTarget(targetParams);
 };
 exports.checkout = checkout;
@@ -10959,7 +10977,7 @@ function getSettings(settingsOrOptions = {}) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = void 0;
+exports.targetRepoRevert = exports.main = void 0;
 const context_1 = __webpack_require__(482);
 const config_1 = __webpack_require__(205);
 const tempFolders_1 = __webpack_require__(897);
@@ -10991,6 +11009,24 @@ const main = async (env = process.env, log) => {
     await (0, ssh_1.killSshProcesses)(context);
 };
 exports.main = main;
+const targetRepoRevert = async (env = process.env, log) => {
+    const context = await (0, context_1.createContext)(log);
+    // Process and validate config
+    await (0, config_1.config)(env, context);
+    // Calculate paths that use temp directories
+    await (0, tempFolders_1.prepareTempFolders)(context);
+    // Copy known hosts file that has most popular public Git repo domains
+    await (0, knownHosts_1.setupKnownHosts)(context);
+    // If needed setup ssh keys for git access
+    await (0, ssh_1.setupSshKeys)(context);
+    // Clone target branch
+    await (0, checkout_1.checkout)(context, true);
+    // Revert last commit and force push
+    await (0, commit_1.revertCommit)(context);
+    // Kill ssh processes if private keys were installed
+    await (0, ssh_1.killSshProcesses)(context);
+};
+exports.targetRepoRevert = targetRepoRevert;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -16462,7 +16498,8 @@ exports.default = SyncProvider;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const _1 = __webpack_require__(526);
-(0, _1.main)(process.env, console).catch((err) => {
+const run = process.env.TARGET_REPO_REVERT ? _1.targetRepoRevert : _1.main;
+run(process.env, console).catch((err) => {
     console.error(err);
     process.exit(1);
 });
