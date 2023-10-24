@@ -22,6 +22,7 @@ export interface EnvironmentVariables {
   COMMIT_AUTHOR?: string;
   COMMIT_AUTHOR_EMAIL?: string;
   KNOWN_HOSTS_FILE?: string;
+  TARGET_REPO_REVERT?: string;
 }
 
 declare global {
