@@ -131,7 +131,7 @@ const checkoutTarget = async ({ context, repoData, execOpts }: CheckoutProps) =>
   }
 };
 
-export const checkout = async (context: Context) => {
+export const checkout = async (context: Context, skipSource?: boolean) => {
   const srcParams = {
     context,
     repoData: context.config?.src || {},
@@ -143,6 +143,9 @@ export const checkout = async (context: Context) => {
     execOpts: context.exec.targetExecOpt,
   };
 
-  await checkoutSrc(srcParams);
+  if (!skipSource) {
+    await checkoutSrc(srcParams);
+  }
+
   await checkoutTarget(targetParams);
 };

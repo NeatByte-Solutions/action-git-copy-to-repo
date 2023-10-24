@@ -34,12 +34,13 @@ const checkIfChanged = async (context: Context) => {
   return true;
 };
 
-const push = async (context: Context) => {
+const push = async (context: Context, force?: boolean) => {
   const { log } = context;
   const branch = context.config?.target.branch;
+  const forceFlag = force ? '--force ' : '';
 
-  log.log(`##[info] Pushing: git push origin ${branch}`);
-  const push = await exec(`git push origin ${branch}`, context.exec.targetExecOpt);
+  log.log(`##[info] Pushing: git push ${forceFlag} origin ${branch}`);
+  const push = await exec(`git push ${forceFlag} origin ${branch}`, context.exec.targetExecOpt);
   log.log(push.stdout);
   log.log(`##[info] Deployment Successful`);
 };
@@ -64,4 +65,13 @@ export const commit = async (context: Context) => {
   if (isChanged) {
     await push(context);
   }
+};
+
+export const revertCommit = async (context: Context) => {
+  const { log } = context;
+
+  log.log(`##[info] Reverting last commit: git reset --hard HEAD^1`);
+  await exec(`git reset --hard HEAD^1`, context.exec?.targetExecOpt);
+
+  await push(context, true);
 };
