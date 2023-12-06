@@ -55,9 +55,23 @@ const checkIfFileCountMatches = async (context: Context) => {
     `##[info] Checking whether the number of changed files between ${baseBranch} and ${targetBranch} matches the expected count`
   );
 
-  // Count the changed files between the base branch and the target branch
-  const cmd = `git diff --name-only ${baseBranch} ${targetBranch}`;
-  const { stdout } = await exec(cmd, { ...context.exec.targetExecOpt, logOutput: false });
+  // Fetch base branch
+  await exec(`git fetch origin ${baseBranch}:${baseBranch}`, {
+    ...context.exec.targetExecOpt,
+    logOutput: false,
+  });
+
+  // Find the common ancestor of the target branch and the base branch
+  const { stdout: commonAncestor } = await exec(`git merge-base ${targetBranch} ${baseBranch}`, {
+    ...context.exec.targetExecOpt,
+    logOutput: false,
+  });
+
+  // Compare the target branch against the common ancestor
+  const { stdout } = await exec(`git diff --name-only ${commonAncestor.trim()} ${targetBranch}`, {
+    ...context.exec.targetExecOpt,
+    logOutput: false,
+  });
 
   const changedFilesCount = stdout
     .trim()
