@@ -28,7 +28,47 @@ const checkIfChanged = async (context: Context) => {
     if (currentCommit.commit.tree === previousCommit.commit.tree) {
       log.log(`##[info] Contents of target repo unchanged, exiting.`);
       return false;
+    } else {
+      const { stdout } = await exec(`git diff --stat ${previousCommit.oid} ${head}`, {
+        ...context.exec.targetExecOpt,
+        logOutput: false,
+      });
+
+      log.log(`##[info] Changes:\n${stdout}`);
     }
+  }
+
+  return true;
+};
+
+const checkIfFileCountMatches = async (context: Context) => {
+  const { config, log } = context;
+  const expectedFileChangeCount = config?.expectedFileChangeCount;
+  const baseBranch = config?.target.baseBranch;
+  const targetBranch = config?.target.branch;
+
+  if (expectedFileChangeCount === undefined || baseBranch === undefined) {
+    return true;
+  }
+
+  log.log(
+    `##[info] Checking whether the number of changed files between ${baseBranch} and ${targetBranch} matches the expected count`
+  );
+
+  // Count the changed files between the base branch and the target branch
+  const cmd = `git diff --name-only ${baseBranch} ${targetBranch}`;
+  const { stdout } = await exec(cmd, { ...context.exec.targetExecOpt, logOutput: false });
+
+  const changedFilesCount = stdout
+    .trim()
+    .split('\n')
+    .filter((line) => line).length;
+
+  if (changedFilesCount !== expectedFileChangeCount) {
+    log.log(
+      `##[info] File change count (${changedFilesCount}) does not match the expected number (${expectedFileChangeCount}), exiting.`
+    );
+    return false;
   }
 
   return true;
@@ -69,7 +109,10 @@ export const commit = async (context: Context) => {
   // and avoid pushing if not
   const isChanged = await checkIfChanged(context);
 
-  if (isChanged) {
+  // Verify if the file change count matches the expected number
+  const fileCountMatches = await checkIfFileCountMatches(context);
+
+  if (isChanged && fileCountMatches) {
     await push(context);
   }
 };

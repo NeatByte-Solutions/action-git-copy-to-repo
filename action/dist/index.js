@@ -3666,6 +3666,7 @@ const config = async (env, context) => {
             authorEmail: env.COMMIT_AUTHOR_EMAIL,
         },
         knownHostsFile: env.KNOWN_HOSTS_FILE,
+        expectedFileChangeCount: Number(env.EXPECTED_FILE_CHANGE_COUNT) || undefined,
     };
 };
 exports.config = config;
@@ -3737,6 +3738,35 @@ const checkIfChanged = async (context) => {
             log.log(`##[info] Contents of target repo unchanged, exiting.`);
             return false;
         }
+        else {
+            const { stdout } = await (0, processUtils_1.exec)(`git diff --stat ${previousCommit.oid} ${head}`, {
+                ...context.exec.targetExecOpt,
+                logOutput: false,
+            });
+            log.log(`##[info] Changes:\n${stdout}`);
+        }
+    }
+    return true;
+};
+const checkIfFileCountMatches = async (context) => {
+    const { config, log } = context;
+    const expectedFileChangeCount = config === null || config === void 0 ? void 0 : config.expectedFileChangeCount;
+    const baseBranch = config === null || config === void 0 ? void 0 : config.target.baseBranch;
+    const targetBranch = config === null || config === void 0 ? void 0 : config.target.branch;
+    if (expectedFileChangeCount === undefined || baseBranch === undefined) {
+        return true;
+    }
+    log.log(`##[info] Checking whether the number of changed files between ${baseBranch} and ${targetBranch} matches the expected count`);
+    // Count the changed files between the base branch and the target branch
+    const cmd = `git diff --name-only ${baseBranch} ${targetBranch}`;
+    const { stdout } = await (0, processUtils_1.exec)(cmd, { ...context.exec.targetExecOpt, logOutput: false });
+    const changedFilesCount = stdout
+        .trim()
+        .split('\n')
+        .filter((line) => line).length;
+    if (changedFilesCount !== expectedFileChangeCount) {
+        log.log(`##[info] File change count (${changedFilesCount}) does not match the expected number (${expectedFileChangeCount}), exiting.`);
+        return false;
     }
     return true;
 };
@@ -3772,7 +3802,9 @@ const commit = async (context) => {
     // Before we push, check whether it changed the tree,
     // and avoid pushing if not
     const isChanged = await checkIfChanged(context);
-    if (isChanged) {
+    // Verify if the file change count matches the expected number
+    const fileCountMatches = await checkIfFileCountMatches(context);
+    if (isChanged && fileCountMatches) {
         await push(context);
     }
 };
@@ -31215,7 +31247,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.writeToProcess = exports.exec = void 0;
 const child_process = __importStar(__webpack_require__(129));
 const exec = async (cmd, opts) => {
-    const { log } = opts;
+    const { log, logOutput = true } = opts;
     const env = (opts === null || opts === void 0 ? void 0 : opts.env) || {};
     const ps = child_process.spawn('bash', ['-c', cmd], {
         env: {
@@ -31233,7 +31265,9 @@ const exec = async (cmd, opts) => {
     ps.stdin.end();
     ps.stdout.on('data', (data) => {
         output.stdout += data;
-        log.log(`data`, data.toString());
+        if (logOutput) {
+            log.log(`data`, data.toString());
+        }
     });
     ps.stderr.on('data', (data) => {
         output.stderr += data;
