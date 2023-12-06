@@ -23,6 +23,7 @@ export interface EnvironmentVariables {
   COMMIT_AUTHOR_EMAIL?: string;
   KNOWN_HOSTS_FILE?: string;
   TARGET_REPO_REVERT?: string;
+  EXPECTED_FILE_CHANGE_COUNT?: string;
 }
 
 declare global {
@@ -50,6 +51,7 @@ export type ConfigType = {
     authorEmail?: string;
   };
   knownHostsFile?: string;
+  expectedFileChangeCount?: number;
 };
 
 export type ExecOpts = {

@@ -27,5 +27,6 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
       authorEmail: env.COMMIT_AUTHOR_EMAIL,
     },
     knownHostsFile: env.KNOWN_HOSTS_FILE,
+    expectedFileChangeCount: Number(env.EXPECTED_FILE_CHANGE_COUNT) || undefined,
   };
 };

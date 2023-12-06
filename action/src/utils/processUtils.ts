@@ -7,9 +7,10 @@ export const exec = async (
     env?: any;
     cwd?: string;
     log: Console;
+    logOutput?: boolean;
   }
 ) => {
-  const { log } = opts;
+  const { log, logOutput = true } = opts;
   const env = opts?.env || {};
   const ps = child_process.spawn('bash', ['-c', cmd], {
     env: {
@@ -29,7 +30,9 @@ export const exec = async (
   ps.stdin.end();
   ps.stdout.on('data', (data) => {
     output.stdout += data;
-    log.log(`data`, data.toString());
+    if (logOutput) {
+      log.log(`data`, data.toString());
+    }
   });
   ps.stderr.on('data', (data) => {
     output.stderr += data;
