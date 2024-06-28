@@ -24,6 +24,7 @@ export interface EnvironmentVariables {
   KNOWN_HOSTS_FILE?: string;
   TARGET_REPO_REVERT?: string;
   EXPECTED_FILE_CHANGE_COUNT?: string;
+  DIFF_COPY_MODE?: string;
 }
 
 declare global {
@@ -52,6 +53,7 @@ export type ConfigType = {
   };
   knownHostsFile?: string;
   expectedFileChangeCount?: number;
+  diffCopyMode?: boolean;
 };
 
 export type ExecOpts = {
