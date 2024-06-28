@@ -28,6 +28,6 @@ export const config = async (env: EnvironmentVariables, context: Context): Promi
     },
     knownHostsFile: env.KNOWN_HOSTS_FILE,
     expectedFileChangeCount: Number(env.EXPECTED_FILE_CHANGE_COUNT) || undefined,
-    copyMode: env.COPY_MODE || 'full',
+    diffCopyMode: env.DIFF_COPY_MODE === 'true',
   };
 };

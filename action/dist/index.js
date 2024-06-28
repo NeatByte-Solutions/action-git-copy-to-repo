@@ -571,7 +571,7 @@ const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder, l
 };
 const clear = async (context) => {
     var _a, _b, _c, _d, _e, _f, _g;
-    if (((_a = context.config) === null || _a === void 0 ? void 0 : _a.copyMode) === 'diff') {
+    if ((_a = context.config) === null || _a === void 0 ? void 0 : _a.diffCopyMode) {
         return;
     }
     // Delete source globs
@@ -3670,7 +3670,7 @@ const config = async (env, context) => {
         },
         knownHostsFile: env.KNOWN_HOSTS_FILE,
         expectedFileChangeCount: Number(env.EXPECTED_FILE_CHANGE_COUNT) || undefined,
-        copyMode: env.COPY_MODE || 'full',
+        diffCopyMode: env.DIFF_COPY_MODE === 'true',
     };
 };
 exports.config = config;
@@ -31476,11 +31476,10 @@ const copy = async (context) => {
     var _a, _b;
     const { log } = context;
     const { srcTempRepo, targetTempRepo } = context.temp;
-    const mode = (_a = context.config) === null || _a === void 0 ? void 0 : _a.copyMode;
     if (!srcTempRepo || !targetTempRepo) {
         return;
     }
-    if (mode === 'diff') {
+    if ((_a = context.config) === null || _a === void 0 ? void 0 : _a.diffCopyMode) {
         log.log(`##[info] Copying only changed files`);
         const { addedOrModified, deleted } = await getChangedFiles(context);
         copyFiles(srcTempRepo, targetTempRepo, addedOrModified, deleted);

@@ -48,7 +48,7 @@ const deleteGlobs = async ({
 };
 
 export const clear = async (context: Context) => {
-  if (context.config?.copyMode === 'diff') {
+  if (context.config?.diffCopyMode) {
     return;
   }
 

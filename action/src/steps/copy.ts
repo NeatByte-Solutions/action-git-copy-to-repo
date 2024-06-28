@@ -63,13 +63,12 @@ const copyFiles = (srcDir: string, targetDir: string, files: string[], toDelete:
 export const copy = async (context: Context) => {
   const { log } = context;
   const { srcTempRepo, targetTempRepo } = context.temp;
-  const mode = context.config?.copyMode;
 
   if (!srcTempRepo || !targetTempRepo) {
     return;
   }
 
-  if (mode === 'diff') {
+  if (context.config?.diffCopyMode) {
     log.log(`##[info] Copying only changed files`);
     const { addedOrModified, deleted } = await getChangedFiles(context);
     copyFiles(srcTempRepo, targetTempRepo, addedOrModified, deleted);
