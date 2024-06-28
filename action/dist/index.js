@@ -3821,7 +3821,7 @@ const commit = async (context) => {
     // Verify if the file change count matches the expected number
     const fileCountMatches = await checkIfFileCountMatches(context);
     if (isChanged && fileCountMatches) {
-        // await push(context);
+        await push(context);
     }
 };
 exports.commit = commit;
@@ -3830,7 +3830,7 @@ const revertCommit = async (context) => {
     const { log } = context;
     log.log(`##[info] Reverting last commit: git reset --hard HEAD^1`);
     await (0, processUtils_1.exec)(`git reset --hard HEAD^1`, (_a = context.exec) === null || _a === void 0 ? void 0 : _a.targetExecOpt);
-    // await push(context, true);
+    await push(context, true);
 };
 exports.revertCommit = revertCommit;
 //# sourceMappingURL=commit.js.map
@@ -31430,10 +31430,15 @@ exports.copy = void 0;
 const processUtils_1 = __webpack_require__(961);
 const fs_1 = __importDefault(__webpack_require__(747));
 const path_1 = __importDefault(__webpack_require__(622));
+const getExcludePatterns = (globsToDelete) => {
+    return globsToDelete.split('\n').map((glob) => `':!${glob.trim()}'`);
+};
 const getChangedFiles = async (context) => {
+    var _a, _b;
     const { log } = context;
-    log.log(`##[info] Getting list of changed files: git diff master...`);
-    const { stdout } = await (0, processUtils_1.exec)(`git diff --name-status master...`, context.exec.srcExecOpt);
+    const excludePatterns = getExcludePatterns(((_b = (_a = context.config) === null || _a === void 0 ? void 0 : _a.src) === null || _b === void 0 ? void 0 : _b.globsToDelete) || '');
+    log.log(`##[info] Getting list of changed files: git diff master... -- ${excludePatterns.join(' ')}`);
+    const { stdout } = await (0, processUtils_1.exec)(`git diff --name-status master... -- ${excludePatterns.join(' ')}`, context.exec.srcExecOpt);
     const changes = stdout.trim().split('\n').filter(Boolean);
     const addedOrModified = [];
     const deleted = [];
@@ -31446,8 +31451,6 @@ const getChangedFiles = async (context) => {
             addedOrModified.push(file);
         }
     });
-    log.log(`##[info] Added or modified files:\n${addedOrModified.join('\n')}`);
-    log.log(`##[info] Deleted files:\n${deleted.join('\n')}`);
     return { addedOrModified, deleted };
 };
 const copyFiles = (srcDir, targetDir, files, toDelete) => {

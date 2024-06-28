@@ -3,13 +3,23 @@ import { Context } from '../types';
 import fs from 'fs';
 import path from 'path';
 
+const getExcludePatterns = (globsToDelete: string): string[] => {
+  return globsToDelete.split('\n').map((glob) => `':!${glob.trim()}'`);
+};
+
 const getChangedFiles = async (
   context: Context
 ): Promise<{ addedOrModified: string[]; deleted: string[] }> => {
   const { log } = context;
+  const excludePatterns = getExcludePatterns(context.config?.src?.globsToDelete || '');
 
-  log.log(`##[info] Getting list of changed files: git diff master...`);
-  const { stdout } = await exec(`git diff --name-status master...`, context.exec.srcExecOpt);
+  log.log(
+    `##[info] Getting list of changed files: git diff master... -- ${excludePatterns.join(' ')}`
+  );
+  const { stdout } = await exec(
+    `git diff --name-status master... -- ${excludePatterns.join(' ')}`,
+    context.exec.srcExecOpt
+  );
 
   const changes = stdout.trim().split('\n').filter(Boolean);
   const addedOrModified: string[] = [];
