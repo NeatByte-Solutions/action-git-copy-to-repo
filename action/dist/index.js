@@ -570,21 +570,24 @@ const deleteGlobs = async ({ context, globsToDelete, defaultGlobs, repoFolder, l
     }
 };
 const clear = async (context) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g;
+    if (((_a = context.config) === null || _a === void 0 ? void 0 : _a.copyMode) === 'diff') {
+        return;
+    }
     // Delete source globs
     await deleteGlobs({
         context,
-        globsToDelete: ((_b = (_a = context.config) === null || _a === void 0 ? void 0 : _a.src) === null || _b === void 0 ? void 0 : _b.globsToDelete) || '',
+        globsToDelete: ((_c = (_b = context.config) === null || _b === void 0 ? void 0 : _b.src) === null || _c === void 0 ? void 0 : _c.globsToDelete) || '',
         defaultGlobs: ['.git/**'],
-        repoFolder: (_c = context.temp) === null || _c === void 0 ? void 0 : _c.srcTempRepo,
+        repoFolder: (_d = context.temp) === null || _d === void 0 ? void 0 : _d.srcTempRepo,
         logDeleted: true,
     });
     // Delete target globs
     await deleteGlobs({
         context,
-        globsToDelete: ((_e = (_d = context.config) === null || _d === void 0 ? void 0 : _d.target) === null || _e === void 0 ? void 0 : _e.globsToDelete) || '',
+        globsToDelete: ((_f = (_e = context.config) === null || _e === void 0 ? void 0 : _e.target) === null || _f === void 0 ? void 0 : _f.globsToDelete) || '',
         defaultGlobs: ['**/*', '!.git'],
-        repoFolder: (_f = context.temp) === null || _f === void 0 ? void 0 : _f.targetTempRepo,
+        repoFolder: (_g = context.temp) === null || _g === void 0 ? void 0 : _g.targetTempRepo,
     });
 };
 exports.clear = clear;
@@ -3667,6 +3670,7 @@ const config = async (env, context) => {
         },
         knownHostsFile: env.KNOWN_HOSTS_FILE,
         expectedFileChangeCount: Number(env.EXPECTED_FILE_CHANGE_COUNT) || undefined,
+        copyMode: env.COPY_MODE || 'full',
     };
 };
 exports.config = config;
@@ -3817,7 +3821,7 @@ const commit = async (context) => {
     // Verify if the file change count matches the expected number
     const fileCountMatches = await checkIfFileCountMatches(context);
     if (isChanged && fileCountMatches) {
-        await push(context);
+        // await push(context);
     }
 };
 exports.commit = commit;
@@ -3826,7 +3830,7 @@ const revertCommit = async (context) => {
     const { log } = context;
     log.log(`##[info] Reverting last commit: git reset --hard HEAD^1`);
     await (0, processUtils_1.exec)(`git reset --hard HEAD^1`, (_a = context.exec) === null || _a === void 0 ? void 0 : _a.targetExecOpt);
-    await push(context, true);
+    // await push(context, true);
 };
 exports.revertCommit = revertCommit;
 //# sourceMappingURL=commit.js.map
@@ -31418,15 +31422,70 @@ module.exports = GZheader;
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.copy = void 0;
 const processUtils_1 = __webpack_require__(961);
+const fs_1 = __importDefault(__webpack_require__(747));
+const path_1 = __importDefault(__webpack_require__(622));
+const getChangedFiles = async (context) => {
+    const { log } = context;
+    log.log(`##[info] Getting list of changed files: git diff master...`);
+    const { stdout } = await (0, processUtils_1.exec)(`git diff --name-status master...`, context.exec.srcExecOpt);
+    const changes = stdout.trim().split('\n').filter(Boolean);
+    const addedOrModified = [];
+    const deleted = [];
+    changes.forEach((line) => {
+        const [status, file] = line.split('\t');
+        if (status === 'D') {
+            deleted.push(file);
+        }
+        else {
+            addedOrModified.push(file);
+        }
+    });
+    log.log(`##[info] Added or modified files:\n${addedOrModified.join('\n')}`);
+    log.log(`##[info] Deleted files:\n${deleted.join('\n')}`);
+    return { addedOrModified, deleted };
+};
+const copyFiles = (srcDir, targetDir, files, toDelete) => {
+    // Copy added or modified files
+    files.forEach((file) => {
+        const srcFilePath = path_1.default.join(srcDir, file);
+        const targetFilePath = path_1.default.join(targetDir, file);
+        const targetFileDir = path_1.default.dirname(targetFilePath);
+        if (!fs_1.default.existsSync(targetFileDir)) {
+            fs_1.default.mkdirSync(targetFileDir, { recursive: true });
+        }
+        fs_1.default.copyFileSync(srcFilePath, targetFilePath);
+    });
+    // Delete files that no longer exist in source
+    toDelete.forEach((file) => {
+        const targetFilePath = path_1.default.join(targetDir, file);
+        if (fs_1.default.existsSync(targetFilePath)) {
+            fs_1.default.unlinkSync(targetFilePath);
+        }
+    });
+};
 const copy = async (context) => {
-    var _a;
+    var _a, _b;
     const { log } = context;
     const { srcTempRepo, targetTempRepo } = context.temp;
-    log.log(`##[info] Copying files: cp -rT "${srcTempRepo}"/ ${targetTempRepo}`);
-    await (0, processUtils_1.exec)(`cp -rT "${srcTempRepo}"/ ${targetTempRepo}`, (_a = context.exec) === null || _a === void 0 ? void 0 : _a.targetExecOpt);
+    const mode = (_a = context.config) === null || _a === void 0 ? void 0 : _a.copyMode;
+    if (!srcTempRepo || !targetTempRepo) {
+        return;
+    }
+    if (mode === 'diff') {
+        log.log(`##[info] Copying only changed files`);
+        const { addedOrModified, deleted } = await getChangedFiles(context);
+        copyFiles(srcTempRepo, targetTempRepo, addedOrModified, deleted);
+    }
+    else {
+        log.log(`##[info] Copying all files: cp -rT "${srcTempRepo}"/ ${targetTempRepo}`);
+        await (0, processUtils_1.exec)(`cp -rT "${srcTempRepo}"/ ${targetTempRepo}`, (_b = context.exec) === null || _b === void 0 ? void 0 : _b.targetExecOpt);
+    }
 };
 exports.copy = copy;
 //# sourceMappingURL=copy.js.map

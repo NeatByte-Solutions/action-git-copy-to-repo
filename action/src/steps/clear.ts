@@ -48,6 +48,10 @@ const deleteGlobs = async ({
 };
 
 export const clear = async (context: Context) => {
+  if (context.config?.copyMode === 'diff') {
+    return;
+  }
+
   // Delete source globs
   await deleteGlobs({
     context,
