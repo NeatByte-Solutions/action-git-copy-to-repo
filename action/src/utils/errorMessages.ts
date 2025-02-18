@@ -1,5 +1,5 @@
 export const KNOWN_HOSTS_WARNING = `
-##[warning] Using default known host file (supports GitHub, GitLab).
+##[warning] Using default known host file (supports GitHub, GitLab, Bitbucket).
 Host verification will fail later if other domain is used.
 You can use KNOWN_HOSTS_FILE option to fix it.
 `;
