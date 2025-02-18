@@ -1,6 +1,10 @@
 # action-git-copy-to-repo
 Github Action to push code changes from one git repo to other one as one commit
 
+## Important note
+
+Make sure to build the project before committing (`action/dist/index.js` must be up to date).
+
 ## How to Publish a New Release
 
 1. Go to the Releases page and press `Draft new release`.
