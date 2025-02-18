@@ -14365,7 +14365,7 @@ module.exports = braces;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SSH_KEY_ERROR = exports.KNOWN_HOSTS_ERROR = exports.KNOWN_HOSTS_WARNING = void 0;
 exports.KNOWN_HOSTS_WARNING = `
-##[warning] Using default known host file (supports GitHub, GitLab).
+##[warning] Using default known host file (supports GitHub, GitLab, Bitbucket).
 Host verification will fail later if other domain is used.
 You can use KNOWN_HOSTS_FILE option to fix it.
 `;
